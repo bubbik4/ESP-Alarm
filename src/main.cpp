@@ -70,12 +70,73 @@ const unsigned long TELEGRAM_RETRY_INTERVAL = 1000; // 1s between tries
 uint8_t telegramRetryCount = 0;
 const uint8_t TELEGRAM_MAX_RETRIES = 3;
 
+unsigned long lastBotCheck = 0;
+const unsigned long BOT_CHECK_INTERVAL = 1000; // 1s
+
 float readings[5];
 int readIndex = 0;
 float sum = 0;
 
 static uint32_t lastCheckTime = 0;
 static uint32_t lastBuzzToggle = 0;
+
+void handleNewMessages(int numNewMessages) {
+  for(int i = 0; i < numNewMessages; i++) {
+    String chat_id = String(bot.messages[i].chat_id);
+    String text = bot.messages[i].text;
+    String from = bot.messages[i].from_name;
+
+    INFO("Telegram message from: " + from + " (" + chat_id + "): " + text);
+
+    //normalize
+    text.trim();
+
+    if(text == "/alarm") {
+      //switch state
+      alarmArmed = !alarmArmed;
+
+      String state = alarmArmed ? "UZBROJONY" : "ROZBROJONY";
+      String reply = "AlarmESP-remake\nStan alarmu został zmieniony na : *" + state + "*.";
+      if(alarmArmed) {
+        INFO("Armed via Telegram.");
+      } else {
+        INFO("Disarmed via Telegram.");
+      }
+
+      if(!alarmArmed && alarmTriggered) {
+        alarmTriggered = false;
+        digitalWrite(buzz, LOW);
+        INFO("Alarm disarmed via Telegram. Buzzer turned off.");
+      }
+
+      bool ok = bot.sendMessage(chat_id, reply, "Markdown");
+      if(ok) {
+        INFO("Telegram reply sent (alarm state: (" + state + ")");
+      } else {
+        ERROR("Failed to send Telegram reply for /alarm command.");
+      }
+
+    } else if( text == "/status") {
+      String state = alarmArmed ? "UZBROJONY" : "ROZBROJONY";
+      String msg = "AlarmESP-remake status report:\n"
+                   "• Alarm state: *" + state + "*\n"
+                   "• Last read: " + String(distance, 1) + " cm";
+
+      bot.sendMessage(chat_id, msg, "Markdown");
+
+    } else if (text == "/start" || text == "/help") {
+      String msg = "Help menu:\n"
+                   "Available commands:\n"
+                   "/alarm – switch alarm arming\n"
+                   "/status – show current device state";
+      bot.sendMessage(chat_id, msg, "Markdown");
+
+    } else {
+      String msg = "Unknown command.\nUse /alarm or /status.";
+      bot.sendMessage(chat_id, msg, "");
+    }
+  }
+}
 
 
 void setupTime() {
@@ -353,6 +414,16 @@ void loop() {
     digitalWrite(buzz, LOW);
   }
   handleTelegramSending();
+
+  if (millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
+    lastBotCheck = millis();
+    int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+
+    while(numNewMessages) {
+      handleNewMessages(numNewMessages);
+      numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+    }
+  }
 }
 
 
