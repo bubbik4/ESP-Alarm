@@ -49,6 +49,12 @@ void logPrint(const String &msg) {
   }
 }
 
+
+
+const int trig = D6;
+const int echo = D5;
+
+const int buzz = D8;
 Ticker buzzerTicker;
 void buzzerISR() {
   if (alarmTriggered) {
@@ -57,11 +63,6 @@ void buzzerISR() {
     digitalWrite(buzz, LOW);                // off
   }
 }
-
-const int trig = D6;
-const int echo = D5;
-
-const int buzz = D8;
 
 int failCount = 0;
 
