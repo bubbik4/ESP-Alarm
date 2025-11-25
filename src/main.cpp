@@ -371,6 +371,7 @@ void loop() {
       RAW("\033[2J\033[H"); // ANSI escape
       INFO("AlarmESP-remake LOG console!\n");
       INFO("Current uptime: " + String(uptimeMinutes) + " min");
+      INFO("Current alarm state: " + alarmArmed ? "ARMED" : "DISARMED");
     }
   }
 
