@@ -131,7 +131,7 @@ void handleNewMessages(int numNewMessages) {
       if(ok) {
         INFO("Telegram reply sent (alarm state: (" + state + ")");
       } else {
-        ERROR("Failed to send Telegram reply for /alarm command.");
+        ERROR("Failed to send Telegram reply.");
       }
 
     } else if( text == "/status") {
@@ -140,18 +140,33 @@ void handleNewMessages(int numNewMessages) {
                    "• Alarm state: *" + state + "*\n"
                    "• Last read: " + String(distance, 1) + " cm";
 
-      bot.sendMessage(chat_id, msg, "Markdown");
+      bool ok = bot.sendMessage(chat_id, msg, "Markdown");
+      if(ok) {
+      INFO("Telegram reply sent.");
+      } else {
+      ERROR("Failed to send Telegram reply.");
+      }
 
     } else if (text == "/start" || text == "/help") {
       String msg = "Help menu:\n"
                    "Available commands:\n"
                    "/alarm – switch alarm arming\n"
                    "/status – show current device state";
-      bot.sendMessage(chat_id, msg, "Markdown");
+      bool ok = bot.sendMessage(chat_id, msg, "Markdown");
+      if(ok) {
+        INFO("Telegram reply sent.");
+      } else {
+        ERROR("Failed to send Telegram reply.");
+      }
 
     } else {
       String msg = "Unknown command.\nUse /alarm or /status.";
-      bot.sendMessage(chat_id, msg, "");
+      bool ok = bot.sendMessage(chat_id, msg, "");
+      if(ok) {
+        INFO("Unknown command info sent.");
+      } else {
+        ERROR("Failed to sent Telegram reply."); 
+      }
     }
   }
 }
