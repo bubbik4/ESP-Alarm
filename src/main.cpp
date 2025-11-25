@@ -55,11 +55,14 @@ const int trig = D6;
 const int echo = D5;
 
 const int buzz = D8;
+volatile bool buzzerState = false;
 Ticker buzzerTicker;
 void buzzerISR() {
   if (alarmTriggered) {
-    digitalWrite(buzz, !digitalRead(buzz)); // flip
+    buzzerState = !buzzerState;
+    digitalWrite(buzz, buzzerState); // flip
   } else {
+    buzzerState = false;
     digitalWrite(buzz, LOW);                // off
   }
 }
@@ -383,35 +386,35 @@ void loop() {
       RAW("\033[2J\033[H"); // ANSI escape
       INFO("AlarmESP-remake LOG console!\n");
       INFO("Current uptime: " + String(uptimeMinutes) + " min");
-      INFO("Current alarm state: " + alarmArmed ? "ARMED" : "DISARMED");
+      String stateEng = alarmArmed ? "ARMED" : "DISARMED";
+      INFO("Current alarm state: " + stateEng);
     }
   }
 
   // Time log
-  static uint32_t last = 0;
-  if (millis() - last > 1000) {
-    last = millis();
-    uint32_t uptime = millis() / 1000;
-    if(!(uptime % 60)) {
-      uptimeMinutes = uptime / 60;
-      LOG(String("Uptime: ") + uptimeMinutes + " min");
+static uint32_t lastUptimeLog = 0;
+if (millis() - lastUptimeLog >= 60000) {
+  lastUptimeLog += 60000;    // albo lastUptimeLog = millis();
 
-      //additional avg sensor log
-      if(samples > 0) {
-        INFO("Sensor last minute average read: " + String(distanceLastMinute/(samples)) + " cm (samples: " + String(samples) + ")");
-      } else if(!alarmArmed) {
-        INFO("Distance measuring OFFD.");
-      } else {
-        WARN("This shouldn't happen. If you see this, something is not working as it should.");
-      }
-      distanceLastMinute = 0;
-      samples = 0;
-    }
+  uptimeMinutes = millis() / 60000;
+  LOG(String("Uptime: ") + uptimeMinutes + " min");
+
+  if (samples > 0) {
+    INFO("Sensor last minute average read: " + String(distanceLastMinute / samples) + " cm (samples: " + String(samples) + ")");
+  } else if (!alarmArmed) {
+    INFO("Distance measuring OFFD.");
+  } else {
+    WARN("This shouldn't happen. If you see this, something is not working as it should.");
+  }
+
+  distanceLastMinute = 0;
+  samples = 0;
 }
 
 
+
   // Main guy here
-  if(millis() - lastCheckTime >= 500) {
+  if(millis() - lastCheckTime >= 200) {
     lastCheckTime = millis();
     if(alarmArmed) {
       handleSensor();
