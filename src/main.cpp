@@ -106,6 +106,7 @@ void handleNewMessages(int numNewMessages) {
 
     LOG("Telegram message from: " + from + " (" + chat_id + "): " + text);
 
+    if(chat_id == "8524373212") {
     //normalize
     text.trim();
 
@@ -165,10 +166,19 @@ void handleNewMessages(int numNewMessages) {
       if(ok) {
         INFO("Unknown command info sent.");
       } else {
-        ERROR("Failed to sent Telegram reply."); 
+        ERROR("Failed to send Telegram reply."); 
       }
     }
+  } else {
+    String msg = "Spierdalaj.";
+    bool ok = bot.sendMessage(chat_id, msg, "");
+    if(ok) {
+      INFO("Banished unknown caller.");
+    } else {
+      ERROR("Failed to send Telegram reply.");
+    }
   }
+}
 }
 
 
