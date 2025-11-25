@@ -5,6 +5,7 @@
 #include <UniversalTelegramBot.h>
 #include <WiFiUdp.h>
 #include <time.h>
+#include <Ticker.h>
 
 #include "wifiAuth.h"
 #include "telegramBotID.h"
@@ -48,6 +49,15 @@ void logPrint(const String &msg) {
   }
 }
 
+Ticker buzzerTicker;
+void buzzerISR() {
+  if (alarmTriggered) {
+    digitalWrite(buzz, !digitalRead(buzz)); // flip
+  } else {
+    digitalWrite(buzz, LOW);                // off
+  }
+}
+
 const int trig = D6;
 const int echo = D5;
 
@@ -78,7 +88,6 @@ int readIndex = 0;
 float sum = 0;
 
 static uint32_t lastCheckTime = 0;
-static uint32_t lastBuzzToggle = 0;
 
 void handleNewMessages(int numNewMessages) {
   for(int i = 0; i < numNewMessages; i++) {
@@ -247,8 +256,12 @@ void setup() {
   pinMode(echo, INPUT);
 
   pinMode(buzz, OUTPUT);
+  digitalWrite(buzz, LOW);
 
   digitalWrite(LED_BUILTIN, 1);
+
+  // Every 200ms changing buzzer state 
+  buzzerTicker.attach_ms(200, buzzerISR); 
 }
 
 float getFilteredDistance() {
@@ -292,7 +305,6 @@ bool handleAlarm(float dist) {
    if(!alarmTriggered) {
       alarmTriggered = true;
       INFO("Alarm triggered.");
-      lastBuzzToggle = millis(); // start from now.
       sendAlarmNotification(dist);
       return 1;
    } return 0;
@@ -406,14 +418,8 @@ void loop() {
     }
   }
 
-  if(alarmTriggered) {
-    if(millis() - lastBuzzToggle >= 200) {
-      lastBuzzToggle = millis();
-      digitalWrite(buzz, !digitalRead(buzz));
-    }
-  } else {
-    digitalWrite(buzz, LOW);
-  }
+   // Here was func for toggling buzzer. discontinued.
+
   handleTelegramSending();
 
   if (millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
