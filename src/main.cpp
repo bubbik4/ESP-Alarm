@@ -49,7 +49,7 @@ void logPrint(const String &msg) {
   }
 }
 
-
+bool alarmTriggered = false;
 
 const int trig = D6;
 const int echo = D5;
@@ -67,7 +67,6 @@ void buzzerISR() {
 int failCount = 0;
 
 int alarmArmed = 1;
-bool alarmTriggered = false;
 float distance;
 float duration;
 int samples = 0;
@@ -423,7 +422,7 @@ void loop() {
 
   handleTelegramSending();
 
-  if (millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
+  if (!alarmTriggered &&  millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
     lastBotCheck = millis();
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
