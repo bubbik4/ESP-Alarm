@@ -84,6 +84,11 @@ const unsigned long TELEGRAM_RETRY_INTERVAL = 1000; // 1s between tries
 uint8_t telegramRetryCount = 0;
 const uint8_t TELEGRAM_MAX_RETRIES = 3;
 
+uint32_t alarmMsgCounter = 0;
+uint32_t lastSentMsgId = 0;
+unsigned long lastSentMsgTime = 0;
+const unsigned long DUPLICATE_WINDOW = 5000;          // 5s
+
 unsigned long lastBotCheck = 0;
 const unsigned long BOT_CHECK_INTERVAL = 1000;      // 1s
 
@@ -207,7 +212,7 @@ void setup() {
   LOG("Log server started on port 7777");
 
   uint32_t startWait = millis();
-  while (millis() - startWait < 200) {
+  while (millis() - startWait < 3000) {
     ArduinoOTA.handle();
     WiFiClient newClient = logServer.available();
     if(newClient) {
@@ -285,12 +290,16 @@ void sendAlarmNotification(float dist) {
   if(millis() - lastAlarmMessage > ALARM_COOLDOWN) {
     lastAlarmMessage = millis();
 
+    alarmMsgCounter++;
+    uint32_t thisMsgId = alarmMsgCounter;
+
     String message = "AlarmESP-remake\nwykrył otwarcie drzwi!\n";
-    message+= ("Zmierzona odległość: " + String(dist, 1) + " cm.");
+    message+= "Zmierzona odległość: " + String(dist, 1) + " cm.\n";
+    message+= "ID zdarzenia: #" + String(thisMsgId);
 
     pendingMessage = message;
     pendingTelegram = true;
-    INFO("Queued Telegram message for sending");
+    INFO("Queued Telegram message for sending (id #" + String(thisMsgId) + ")");
 
   } else {
     unsigned long elapsed = millis() - lastAlarmMessage;
@@ -371,11 +380,25 @@ void handleTelegramSending() {
     return;
   }
 
+  // antyduplicate
+  if(pendingMessage.length() > 0 &&
+     pendingMessage == pendingMessage &&
+     (millis() - lastSentMsgTime) < DUPLICATE_WINDOW &&
+     lastSentMsgId == alarmMsgCounter) {
+
+      WARN("Duplicate Telegram message detected, skipping resend.");
+      pendingTelegram = false;
+      pendingMessage = "";
+      return;
+     }
+
   ALERT("Sending Telegram message...");
   bool ok = bot.sendMessage(CHAT_ID, pendingMessage, "Markdown");
   if(ok) {
     INFO("Telegram message sent succesfully.");
     pendingTelegram = false;
+    lastSentMsgId = alarmMsgCounter;
+    lastSentMsgTime = millis();
     pendingMessage = "";
     telegramRetryCount = 0;
   } else {
@@ -440,7 +463,7 @@ if (millis() - lastUptimeLog >= 60000) {
 
   handleTelegramSending();
 
-  if (millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
+  if (!alarmTriggered && millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
     lastBotCheck = millis();
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
