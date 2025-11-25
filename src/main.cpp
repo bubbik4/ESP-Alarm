@@ -99,7 +99,7 @@ void handleNewMessages(int numNewMessages) {
     String text = bot.messages[i].text;
     String from = bot.messages[i].from_name;
 
-    INFO("Telegram message from: " + from + " (" + chat_id + "): " + text);
+    LOG("Telegram message from: " + from + " (" + chat_id + "): " + text);
 
     //normalize
     text.trim();
@@ -168,7 +168,7 @@ void setupTime() {
   if(now < 1000000000) {
     WARN("Failed to get time from NTP, logs won't have accurate timestamps");
   } else {
-    INFO("NTP time synchronized");
+    LOG("NTP time synchronized");
   }
 }
 
@@ -198,7 +198,7 @@ void setup() {
     delay(500);
     LOG(".");
   }
-  INFO("WiFi connected. IP: " + WiFi.localIP().toString());
+  LOG("WiFi connected. IP: " + WiFi.localIP().toString());
   WiFi.setHostname("AlarmESP-remake");
 
   // Start LOG server
@@ -207,7 +207,7 @@ void setup() {
   LOG("Log server started on port 7777");
 
   uint32_t startWait = millis();
-  while (millis() - startWait < 5000) {
+  while (millis() - startWait < 200) {
     ArduinoOTA.handle();
     WiFiClient newClient = logServer.available();
     if(newClient) {
@@ -232,11 +232,11 @@ void setup() {
   ArduinoOTA.setHostname("AlarmESP-remake");
 
   ArduinoOTA.onStart([]() {
-    INFO("OTA Start");
+    LOG("OTA Start");
     delay(500);
   });
   ArduinoOTA.onEnd([]() {
-    INFO("OTA End");
+    LOG("OTA End");
     WARN("Connection closed, please restart PuTTY");
   });
   ArduinoOTA.onError([](ota_error_t error) {
@@ -252,7 +252,7 @@ void setup() {
   ArduinoOTA.begin();
   INFO("OTA Ready");
 
-  INFO("IP address: " + WiFi.localIP().toString());
+  LOG("IP address: " + WiFi.localIP().toString());
 
   
   // Sensor
@@ -265,7 +265,7 @@ void setup() {
   digitalWrite(LED_BUILTIN, 1);
 
   // Every 200ms changing buzzer state 
-  buzzerTicker.attach_ms(200, buzzerISR); 
+  buzzerTicker.attach_ms(100, buzzerISR); 
 }
 
 float getFilteredDistance() {
@@ -290,7 +290,7 @@ void sendAlarmNotification(float dist) {
 
     pendingMessage = message;
     pendingTelegram = true;
-    LOG("Queued Telegram message for sending");
+    INFO("Queued Telegram message for sending");
 
   } else {
     unsigned long elapsed = millis() - lastAlarmMessage;
@@ -305,19 +305,19 @@ void sendAlarmNotification(float dist) {
 }
 
 bool handleAlarm(float dist) {
-  const float OPEN_TRESHOLD = 15.0;           // cm 
-  const float CLOSE_TRESHOLD = 8.0;           // cm
+  const float OPEN_THRESHOLD = 15.0;           // cm 
+  const float CLOSE_THRESHOLD = 8.0;           // cm
 
-  if(dist > OPEN_TRESHOLD) {                  // door open
+  if(dist > OPEN_THRESHOLD) {                  // door open
    if(!alarmTriggered && alarmArmed) {
       alarmTriggered = true;
       LOG("Alarm triggered at distance: " + String(dist, 1) + " cm");
       sendAlarmNotification(dist);
       return 1;
    } return 0;
-  } else if(dist < CLOSE_TRESHOLD) {          // door closed
+  } else if(dist < CLOSE_THRESHOLD) {          // door closed
     if(alarmTriggered) {
-      INFO("Door closed. Alarm reset at distance: " + String(dist, 1) + " cm");
+      LOG("Door closed. Alarm reset at distance: " + String(dist, 1) + " cm");
       alarmTriggered = false;
     }
     return 0;
@@ -440,7 +440,7 @@ if (millis() - lastUptimeLog >= 60000) {
 
   handleTelegramSending();
 
-  if (!alarmTriggered &&  millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
+  if (millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
     lastBotCheck = millis();
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
