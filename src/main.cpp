@@ -50,6 +50,7 @@ void logPrint(const String &msg) {
 }
 
 bool alarmTriggered = false;
+const unsigned long SENSOR_INTERVAL = 200;
 
 const int trig = D6;
 const int echo = D5;
@@ -60,7 +61,7 @@ Ticker buzzerTicker;
 void buzzerISR() {
   if (alarmTriggered) {
     buzzerState = !buzzerState;
-    digitalWrite(buzz, buzzerState); // flip
+    digitalWrite(buzz, buzzerState);        // flip
   } else {
     buzzerState = false;
     digitalWrite(buzz, LOW);                // off
@@ -84,7 +85,7 @@ uint8_t telegramRetryCount = 0;
 const uint8_t TELEGRAM_MAX_RETRIES = 3;
 
 unsigned long lastBotCheck = 0;
-const unsigned long BOT_CHECK_INTERVAL = 1000; // 1s
+const unsigned long BOT_CHECK_INTERVAL = 1000;      // 1s
 
 float readings[5];
 int readIndex = 0;
@@ -268,7 +269,7 @@ void setup() {
 }
 
 float getFilteredDistance() {
-  duration = pulseIn(echo, HIGH, 30000);
+  duration = pulseIn(echo, HIGH, 15000);
   float dist = (duration * 0.0343) / 2.0;
 
   sum -= readings[readIndex];
@@ -304,23 +305,32 @@ void sendAlarmNotification(float dist) {
 }
 
 bool handleAlarm(float dist) {
-  if(dist > 10) {                 // door open
-   if(!alarmTriggered) {
+  const float OPEN_TRESHOLD = 15.0;           // cm 
+  const float CLOSE_TRESHOLD = 8.0;           // cm
+
+  if(dist > OPEN_TRESHOLD) {                  // door open
+   if(!alarmTriggered && alarmArmed) {
       alarmTriggered = true;
-      INFO("Alarm triggered.");
+      LOG("Alarm triggered at distance: " + String(dist, 1) + " cm");
       sendAlarmNotification(dist);
       return 1;
    } return 0;
-  } else {                       // door closed
+  } else if(dist < CLOSE_TRESHOLD) {          // door closed
     if(alarmTriggered) {
-      INFO("Door closed. Alarm reset.");
+      INFO("Door closed. Alarm reset at distance: " + String(dist, 1) + " cm");
       alarmTriggered = false;
     }
     return 0;
   }
+
+  // deadzone
+  return 0;
 }
 
+int sensorCallsThisMinute = 0;
+
 void handleSensor() {
+  sensorCallsThisMinute++;
   digitalWrite(trig, 0);
   delayMicroseconds(2);
   digitalWrite(trig, 1);
@@ -338,7 +348,7 @@ void handleSensor() {
       ESP.restart();
     }
   } else {
-    // This means the sensor read is correct
+      // This means the sensor read is correct
       failCount = 0;
       // LOG("[LOG] Sensor read: " + String(distance) + " cm"); 
       distanceLastMinute+=distance;
@@ -400,21 +410,26 @@ if (millis() - lastUptimeLog >= 60000) {
   LOG(String("Uptime: ") + uptimeMinutes + " min");
 
   if (samples > 0) {
-    INFO("Sensor last minute average read: " + String(distanceLastMinute / samples) + " cm (samples: " + String(samples) + ")");
+    INFO("Sensor last minute average read: " 
+      + String(distanceLastMinute / samples)
+      + " cm (samples: " + String(samples)
+      + ", handleSensor calls: " + String(sensorCallsThisMinute)
+      + ")");
   } else if (!alarmArmed) {
-    INFO("Distance measuring OFFD.");
+    INFO("Distance measuring OFF.");
   } else {
     WARN("This shouldn't happen. If you see this, something is not working as it should.");
   }
 
   distanceLastMinute = 0;
+  sensorCallsThisMinute = 0;
   samples = 0;
 }
 
 
 
   // Main guy here
-  if(millis() - lastCheckTime >= 200) {
+  if(millis() - lastCheckTime >= SENSOR_INTERVAL) {
     lastCheckTime = millis();
     if(alarmArmed) {
       handleSensor();
