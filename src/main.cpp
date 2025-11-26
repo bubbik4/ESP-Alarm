@@ -10,8 +10,8 @@
 #include "wifiAuth.h"
 #include "telegramBotID.h"
 
-const char*  ntpServer = "pool.ntp.org";
-const long   gmtOffset_sec = 3600; // GMT+!
+const char*  ntpServer          = "pool.ntp.org";
+const long   gmtOffset_sec      = 3600; // GMT+!
 const int    daylightOffset_sec = 0;
 
 
@@ -19,13 +19,13 @@ WiFiClientSecure secured_client;
 UniversalTelegramBot bot(BOT_TOKEN, secured_client);
 
 unsigned long lastAlarmMessage = 0;
-const int ALARM_COOLDOWN = 30000;
+const int ALARM_COOLDOWN       = 30000;
 
 WiFiServer logServer(7777); // Log port
 WiFiClient logClient;
 
 // ANSI color codes
-#define COL_RESET "\033[0m"
+#define COL_RESET   "\033[0m"
 #define COL_WHITE   "\033[37m" 
 #define COL_BLUE    "\033[94m"
 #define COL_YELLOW  "\033[33m"
@@ -84,22 +84,22 @@ struct TgMessage {
 
 bool pendingTelegram = false;
 TgMessage pendingMsg;
-unsigned long telegramLastAttempt = 0;
+unsigned long telegramLastAttempt           = 0;
 const unsigned long TELEGRAM_RETRY_INTERVAL = 1000; // 1s between tries
-uint8_t telegramRetryCount = 0;
-const uint8_t TELEGRAM_MAX_RETRIES = 3;
+uint8_t telegramRetryCount                  = 0;
+const uint8_t TELEGRAM_MAX_RETRIES          = 3;
 
-uint32_t msgCounter = 0;
-uint32_t lastSentMsgId = 0;
-unsigned long lastSentMsgTime = 0;
-const unsigned long DUPLICATE_WINDOW = 5000;          // 5s
+uint32_t msgCounter                    = 0;
+uint32_t lastSentMsgId                 = 0;
+unsigned long lastSentMsgTime          = 0;
+const unsigned long DUPLICATE_WINDOW   = 5000;          // 5s
 
-unsigned long lastBotCheck = 0;
+unsigned long lastBotCheck             = 0;
 const unsigned long BOT_CHECK_INTERVAL = 5000;      // 5s
 
 float readings[5];
 int readIndex = 0;
-float sum = 0;
+float sum     = 0;
 
 int loopTicksThisMinute = 0; // DEBUG
 
@@ -151,7 +151,7 @@ void handleNewMessages(int numNewMessages) {
         alarmArmed = !alarmArmed;
 
         String state = alarmArmed ? "ARMED" : "DISARMED";
-        reply = "AlarmESP-remake\nAlarm state switched to: *" + state + "*.";
+        reply        = "AlarmESP-remake\nAlarm state switched to: *" + state + "*.";
         if(alarmArmed) {
           INFO("Armed via Telegram.");
         } else {
@@ -304,7 +304,7 @@ void setup() {
 }
 
 float getFilteredDistance() {
-  duration = pulseIn(echo, HIGH, 15000);
+  duration   = pulseIn(echo, HIGH, 15000);
   float dist = (duration * 0.0343) / 2.0;
 
   sum -= readings[readIndex];
@@ -323,7 +323,7 @@ void sendAlarmNotification(float dist) {
 
 
     String message = "AlarmESP-remake\nalarm triggered!\n";
-    message+= "Measured distance: " + String(dist, 1) + " cm.\n";
+    message       += "Measured distance: " + String(dist, 1) + " cm.\n";
 
     queueTelegramMessage(ALLOWED_CHAT_ID, message);
   } else {
@@ -348,7 +348,7 @@ bool handleAlarm(float dist) {
       LOG("Alarm triggered at distance: " + String(dist, 1) + " cm");
       sendAlarmNotification(dist);
       return 1;
-   } return 0;
+   }  return 0;
   } else if(dist < CLOSE_THRESHOLD) {          // door closed
     if(alarmTriggered) {
       LOG("Door closed. Alarm reset at distance: " + String(dist, 1) + " cm");
@@ -364,7 +364,9 @@ bool handleAlarm(float dist) {
 int sensorCallsThisMinute = 0;
 
 void handleSensor() {
+
   sensorCallsThisMinute++;
+
   digitalWrite(trig, 0);
   delayMicroseconds(2);
   digitalWrite(trig, 1);
@@ -384,9 +386,8 @@ void handleSensor() {
     }
   } else {
       // This means the sensor read is correct
-      failCount = 0;
-      // LOG("[LOG] Sensor read: " + String(distance) + " cm"); 
-      distanceLastMinute+=distance;
+      failCount           = 0;
+      distanceLastMinute += distance;
       samples++;
       handleAlarm(distance);
   }
