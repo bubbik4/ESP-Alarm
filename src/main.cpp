@@ -98,6 +98,16 @@ float sum = 0;
 
 static uint32_t lastCheckTime = 0;
 
+void shortBlink(int interval = 100) {
+  digitalWrite(LED_BUILTIN, LOW);   // ON
+  delay(interval);
+  digitalWrite(LED_BUILTIN, HIGH);  // OFF
+  delay(interval);
+  digitalWrite(LED_BUILTIN, LOW);   // ON
+  delay(interval);
+  digitalWrite(LED_BUILTIN, HIGH);  // OFF
+}
+
 void handleNewMessages(int numNewMessages) {
   for(int i = 0; i < numNewMessages; i++) {
     String chat_id = String(bot.messages[i].chat_id);
@@ -105,6 +115,7 @@ void handleNewMessages(int numNewMessages) {
     String from = bot.messages[i].from_name;
 
     LOG("Telegram message from: " + from + " (" + chat_id + "): " + text);
+    shortBlink();
 
     if(chat_id == "8524373212") {
     //normalize
@@ -296,6 +307,7 @@ void setup() {
 
   // Every 200ms changing buzzer state 
   buzzerTicker.attach_ms(100, buzzerISR); 
+  shortBlink();
 }
 
 float getFilteredDistance() {
@@ -375,6 +387,7 @@ void handleSensor() {
   // distance = getMedianDistance();
   if(duration <= 0) {
     failCount++;
+    shortBlink(20);
     WARN("Sensor read failure [" + String(failCount) + "]");
     if(failCount >= 10) {
       ERROR("No answer from sensor in 10 tries. Rebooting"); 
@@ -407,15 +420,15 @@ void handleTelegramSending() {
 
   // antyduplicate
   if(pendingMessage.length() > 0 &&
-     pendingMessage == pendingMessage &&
-     (millis() - lastSentMsgTime) < DUPLICATE_WINDOW &&
-     lastSentMsgId == alarmMsgCounter) {
+    pendingMessage == pendingMessage &&
+    (millis() - lastSentMsgTime) < DUPLICATE_WINDOW &&
+    lastSentMsgId == alarmMsgCounter) {
 
-      WARN("Duplicate Telegram message detected, skipping resend.");
-      pendingTelegram = false;
-      pendingMessage = "";
-      return;
-     }
+    WARN("Duplicate Telegram message detected, skipping resend.");
+    pendingTelegram = false;
+    pendingMessage = "";
+    return;
+  }
 
   ALERT("Sending Telegram message...");
   bool ok = bot.sendMessage(CHAT_ID, pendingMessage, "Markdown");
@@ -426,6 +439,8 @@ void handleTelegramSending() {
     lastSentMsgTime = millis();
     pendingMessage = "";
     telegramRetryCount = 0;
+    shortBlink(20);
+
   } else {
     telegramRetryCount++;
     ERROR("Failed to send Telegram message (sendMessage() == false). Retry " + String(telegramRetryCount) + "/" + String(TELEGRAM_MAX_RETRIES));
@@ -440,6 +455,8 @@ void loop() {
   if(!logClient || !logClient.connected()) {
     WiFiClient newClient = logServer.available();
     if(newClient) {
+      shortBlink();
+
       logClient = newClient;
       RAW("\033[2J\033[H"); // ANSI escape
       INFO("AlarmESP-remake LOG console!\n");
@@ -456,6 +473,7 @@ if (millis() - lastUptimeLog >= 60000) {
 
   uptimeMinutes = millis() / 60000;
   LOG(String("Uptime: ") + uptimeMinutes + " min");
+  shortBlink(50);
 
   if (samples > 0) {
     INFO("Sensor last minute average read: " 
