@@ -77,14 +77,19 @@ int samples = 0;
 int uptimeMinutes;
 float distanceLastMinute = 0;
 
+struct TgMessage {
+  String chatId;
+  String text;
+};
+
 bool pendingTelegram = false;
-String pendingMessage;
+TgMessage pendingMsg;
 unsigned long telegramLastAttempt = 0;
 const unsigned long TELEGRAM_RETRY_INTERVAL = 1000; // 1s between tries
 uint8_t telegramRetryCount = 0;
 const uint8_t TELEGRAM_MAX_RETRIES = 3;
 
-uint32_t alarmMsgCounter = 0;
+uint32_t msgCounter = 0;
 uint32_t lastSentMsgId = 0;
 unsigned long lastSentMsgTime = 0;
 const unsigned long DUPLICATE_WINDOW = 5000;          // 5s
@@ -110,6 +115,23 @@ void shortBlink(int interval = 100) {
   digitalWrite(LED_BUILTIN, HIGH);  // OFF
 }
 
+void queueTelegramMessage(const String &chatId, const String &msg, bool force = false) {
+  // if something is waiting, not forcing, dont overwrite
+  if(pendingTelegram && !force) {
+    WARN("Telegram message already pending, new one dropped.");
+    return;
+  }
+
+  msgCounter++;
+  pendingMsg.chatId   = chatId;
+  pendingMsg.text     = msg + "\nEvent ID: #" + String(msgCounter);
+  pendingTelegram     = true;
+  telegramRetryCount  = 0;
+  telegramLastAttempt = 0; // allows to send msg in next handleTelegramSending()
+
+  INFO("Queued Telegram message for sending (id #" + String(msgCounter) + ")");
+}
+
 void handleNewMessages(int numNewMessages) {
   for(int i = 0; i < numNewMessages; i++) {
     String chat_id = String(bot.messages[i].chat_id);
@@ -119,79 +141,52 @@ void handleNewMessages(int numNewMessages) {
     LOG("Telegram message from: " + from + " (" + chat_id + "): " + text);
     shortBlink();
 
-    if(chat_id == "8524373212") {
-    //normalize
-    text.trim();
+    String reply;
 
-    if(text == "/alarm") {
-      //switch state
-      alarmArmed = !alarmArmed;
+    if(chat_id.equals(ALLOWED_CHAT_ID)) {
+      text.trim();
 
-      String state = alarmArmed ? "UZBROJONY" : "ROZBROJONY";
-      String reply = "AlarmESP-remake\nStan alarmu został zmieniony na : *" + state + "*.";
-      if(alarmArmed) {
-        INFO("Armed via Telegram.");
+      if(text == "/alarm") {
+        //switch state
+        alarmArmed = !alarmArmed;
+
+        String state = alarmArmed ? "ARMED" : "DISARMED";
+        reply = "AlarmESP-remake\nAlarm state switched to: *" + state + "*.";
+        if(alarmArmed) {
+          INFO("Armed via Telegram.");
+        } else {
+          INFO("Disarmed via Telegram.");
+        }
+
+        if(!alarmArmed && alarmTriggered) {
+          alarmTriggered = false;
+          digitalWrite(buzz, LOW);
+          INFO("Alarm disarmed via Telegram. Buzzer turned off.");
+        }
+
+      } else if( text == "/status") {
+        String state = alarmArmed ? "UZBROJONY" : "ROZBROJONY";
+        reply =   "AlarmESP-remake status report:\n";
+        reply +=  "• Alarm state: *" + state + "*\n";
+        reply +=  "• Last read: " + String(distance, 1) + " cm";
+
+      } else if (text == "/start" || text == "/help") {
+        reply = "Help menu:\n"
+                "Available commands:\n"
+                "/alarm – switch alarm arming\n"
+                "/status – show current device state";
+
       } else {
-        INFO("Disarmed via Telegram.");
+        reply = "Unknown command.\nUse /alarm or /status.";
       }
-
-      if(!alarmArmed && alarmTriggered) {
-        alarmTriggered = false;
-        digitalWrite(buzz, LOW);
-        INFO("Alarm disarmed via Telegram. Buzzer turned off.");
-      }
-
-      bool ok = bot.sendMessage(chat_id, reply, "Markdown");
-      if(ok) {
-        INFO("Telegram reply sent (alarm state: (" + state + ")");
-      } else {
-        ERROR("Failed to send Telegram reply.");
-      }
-
-    } else if( text == "/status") {
-      String state = alarmArmed ? "UZBROJONY" : "ROZBROJONY";
-      String msg = "AlarmESP-remake status report:\n"
-                   "• Alarm state: *" + state + "*\n"
-                   "• Last read: " + String(distance, 1) + " cm";
-
-      bool ok = bot.sendMessage(chat_id, msg, "Markdown");
-      if(ok) {
-      INFO("Telegram reply sent.");
-      } else {
-      ERROR("Failed to send Telegram reply.");
-      }
-
-    } else if (text == "/start" || text == "/help") {
-      String msg = "Help menu:\n"
-                   "Available commands:\n"
-                   "/alarm – switch alarm arming\n"
-                   "/status – show current device state";
-      bool ok = bot.sendMessage(chat_id, msg, "Markdown");
-      if(ok) {
-        INFO("Telegram reply sent.");
-      } else {
-        ERROR("Failed to send Telegram reply.");
-      }
-
     } else {
-      String msg = "Unknown command.\nUse /alarm or /status.";
-      bool ok = bot.sendMessage(chat_id, msg, "");
-      if(ok) {
-        INFO("Unknown command info sent.");
-      } else {
-        ERROR("Failed to send Telegram reply."); 
-      }
+      WARN("unknown_exception found: user not whitelisted. (" + String(chat_id) + ")");
     }
-  } else {
-    String msg = "unknown_exception found: user not whitelisted. (" + String(chat_id) + ")";
-    bool ok = bot.sendMessage(chat_id, msg, "");
-    if(ok) {
-      INFO("Banished unknown caller.");
-    } else {
-      ERROR("Failed to send Telegram reply.");
+
+    if(reply.length() > 0) {
+      queueTelegramMessage(chat_id, reply);
     }
   }
-}
 }
 
 
@@ -263,10 +258,6 @@ void setup() {
   }
   setupTime();
 
-  pendingTelegram = false;
-  pendingMessage = "";
-  telegramRetryCount = 0;
-
   secured_client.setInsecure();
   LOG("Telegram client configured (insecure mode)");
 
@@ -329,17 +320,12 @@ void sendAlarmNotification(float dist) {
   if(millis() - lastAlarmMessage > ALARM_COOLDOWN) {
     lastAlarmMessage = millis();
 
-    alarmMsgCounter++;
-    uint32_t thisMsgId = alarmMsgCounter;
 
-    String message = "AlarmESP-remake\nwykrył otwarcie drzwi!\n";
-    message+= "Zmierzona odległość: " + String(dist, 1) + " cm.\n";
-    message+= "ID zdarzenia: #" + String(thisMsgId);
 
-    pendingMessage = message;
-    pendingTelegram = true;
-    INFO("Queued Telegram message for sending (id #" + String(thisMsgId) + ")");
+    String message = "AlarmESP-remake\nalarm triggered!\n";
+    message+= "Measured distance: " + String(dist, 1) + " cm.\n";
 
+    queueTelegramMessage(ALLOWED_CHAT_ID, message);
   } else {
     unsigned long elapsed = millis() - lastAlarmMessage;
     long remaining = ALARM_COOLDOWN - (long)elapsed;
@@ -414,38 +400,31 @@ void handleTelegramSending() {
 
   if(telegramRetryCount >= TELEGRAM_MAX_RETRIES) {
     ERROR("Giving up on Telegram message after max retries.");
-    pendingMessage = "";
-    pendingTelegram = false;
-    telegramRetryCount = 0;
+    pendingMsg.text     = "";
+    pendingMsg.chatId   = "";
+    pendingTelegram     = false;
+    telegramRetryCount  = 0;
     return;
   }
 
-  // antyduplicate
-  if(pendingMessage.length() > 0 &&
-    pendingMessage == pendingMessage &&
-    (millis() - lastSentMsgTime) < DUPLICATE_WINDOW &&
-    lastSentMsgId == alarmMsgCounter) {
+  ALERT("Sending Telegram message to chatId=" + pendingMsg.chatId + 
+        " (len=" + String(pendingMsg.text.length()) + ")");
+  bool ok = bot.sendMessage(pendingMsg.chatId, pendingMsg.text, "Markdown");
 
-    WARN("Duplicate Telegram message detected, skipping resend.");
-    pendingTelegram = false;
-    pendingMessage = "";
-    return;
-  }
-
-  ALERT("Sending Telegram message...");
-  bool ok = bot.sendMessage(CHAT_ID, pendingMessage, "Markdown");
   if(ok) {
     INFO("Telegram message sent succesfully.");
-    pendingTelegram = false;
-    lastSentMsgId = alarmMsgCounter;
-    lastSentMsgTime = millis();
-    pendingMessage = "";
+    pendingTelegram    = false;
+    lastSentMsgId      = msgCounter;
+    lastSentMsgTime    = millis();
+    pendingMsg.text    = "";
+    pendingMsg.chatId  = "";
     telegramRetryCount = 0;
     shortBlink(20);
 
   } else {
     telegramRetryCount++;
     ERROR("Failed to send Telegram message (sendMessage() == false). Retry " + String(telegramRetryCount) + "/" + String(TELEGRAM_MAX_RETRIES));
+    ERROR("Telegram lastError: " + String(bot._lastError));
     //pendingTelegram stays true, next try in one sec.
   }
 }
