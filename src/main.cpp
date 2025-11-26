@@ -50,7 +50,7 @@ void logPrint(const String &msg) {
 }
 
 bool alarmTriggered = false;
-const unsigned long SENSOR_INTERVAL = 200;
+const unsigned long SENSOR_INTERVAL = 500;
 
 const int trig = D6;
 const int echo = D5;
@@ -90,11 +90,13 @@ unsigned long lastSentMsgTime = 0;
 const unsigned long DUPLICATE_WINDOW = 5000;          // 5s
 
 unsigned long lastBotCheck = 0;
-const unsigned long BOT_CHECK_INTERVAL = 1000;      // 1s
+const unsigned long BOT_CHECK_INTERVAL = 5000;      // 5s
 
 float readings[5];
 int readIndex = 0;
 float sum = 0;
+
+int loopTicksThisMinute = 0; // DEBUG
 
 static uint32_t lastCheckTime = 0;
 
@@ -181,7 +183,7 @@ void handleNewMessages(int numNewMessages) {
       }
     }
   } else {
-    String msg = "Spierdalaj.";
+    String msg = "unknown_exception found: user not whitelisted. (" + String(chat_id) + ")";
     bool ok = bot.sendMessage(chat_id, msg, "");
     if(ok) {
       INFO("Banished unknown caller.");
@@ -449,6 +451,7 @@ void handleTelegramSending() {
 }
 
 void loop() {
+  loopTicksThisMinute++;  // DEBUG
   ArduinoOTA.handle();
   
   // Log handle
@@ -474,7 +477,8 @@ if (millis() - lastUptimeLog >= 60000) {
   uptimeMinutes = millis() / 60000;
   LOG(String("Uptime: ") + uptimeMinutes + " min");
   shortBlink(50);
-
+  INFO("Loop ticks this minute: " + String(loopTicksThisMinute));  // DEBUG
+  loopTicksThisMinute = 0;                                         // DEBUG
   if (samples > 0) {
     INFO("Sensor last minute average read: " 
       + String(distanceLastMinute / samples)
@@ -509,10 +513,8 @@ if (millis() - lastUptimeLog >= 60000) {
   if (!alarmTriggered && millis() - lastBotCheck > BOT_CHECK_INTERVAL) {
     lastBotCheck = millis();
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
-
-    while(numNewMessages) {
+    if(numNewMessages) {
       handleNewMessages(numNewMessages);
-      numNewMessages = bot.getUpdates(bot.last_message_received + 1);
     }
   }
 }
