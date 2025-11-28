@@ -9,6 +9,13 @@ WiFiClient logClient;
 
 static int loopTicksThisMinute    = 0;
 static unsigned long lastMinuteTs = 0;
+static unsigned long startMillis  = millis();
+
+static unsigned long getUptimeMinutes() {
+  unsigned long now = millis();
+  unsigned long elapsedMs = now - startMillis;
+  return elapsedMs / 60000UL; // minutes
+}
 
 void loggerLoopTick() {
   loopTicksThisMinute++;
@@ -21,14 +28,17 @@ void loggerMinuteCheck() {
   }
   lastMinuteTs = now;
 
-  int   sensorCalls = 0;
+  int   sensorCalls   = 0;
   float avgDistanceCm = 0.0f;
 
   sensorStatsGet(sensorCalls, avgDistanceCm);
 
-  INFO("Minute stats -> loopTicks=" + String(loopTicksThisMinute) + 
-       ", sensorCalls=" + String(sensorCalls) +
-       ", avgDistance=" + String(avgDistanceCm, 1) + " cm");
+  unsigned long uptimeMinutes = getUptimeMinutes();
+
+  INFO("Minute stats -> uptime=" + String(uptimeMinutes) + 
+       " min, loopTicks="        + String(loopTicksThisMinute) + 
+       ", sensorCalls="          + String(sensorCalls) +
+       ", avgDistance="          + String(avgDistanceCm, 1) + " cm");
 
     loopTicksThisMinute = 0;
 }
@@ -69,7 +79,8 @@ void handleLogger() {
         logClient = newClient;
         RAW("\033[2J\033[H"); // ANSI escape
         INFO("AlarmESP-remake LOG console!\n");
-        // INFO("Current uptime: " + String(uptimeMinutes) + " min");
+        unsigned long uptimeMinutes = getUptimeMinutes();
+        INFO("Current uptime: " + String(uptimeMinutes) + " min");
     }
   }
 }

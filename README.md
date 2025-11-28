@@ -7,8 +7,11 @@ System alarmowy oparty na ESP8266 z:
 - aktualizacjami OTA,
 - buzzerem sygnalizacyjnym.
 
-Sczegółowa dokumentacja projektu:
-[docs/AlarmESPv2.md](docs/AlarmESP-remake.md)
+## Wersje
+
+Aktualna wersja: **v1.1.0**
+
+Dokumentacja dla tej wersji: [docs/AlarmESPv2.md](docs/AlarmESP-remake.md)
 
 ## Struktura projektu
 
