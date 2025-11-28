@@ -1,15 +1,37 @@
 #include "logger.h"
+#include "sensorHandler.h"
+#include <ESP8266WiFi.h>
 #include <time.h>
 
 // Log server+client
 WiFiServer logServer(7777);
 WiFiClient logClient;
 
-static int uptimeMinutes = 0;
-static int loopTicksThisMinute = 0;
-static int sensorCallsThisMinute = 0;
-static float distanceLastMinute = 0;
-static int samples = 0;
+static int loopTicksThisMinute    = 0;
+static unsigned long lastMinuteTs = 0;
+
+void loggerLoopTick() {
+  loopTicksThisMinute++;
+}
+
+void loggerMinuteCheck() {
+  unsigned long now = millis();
+  if (now - lastMinuteTs < 60000UL) {
+    return; // minute not passed
+  }
+  lastMinuteTs = now;
+
+  int   sensorCalls = 0;
+  float avgDistanceCm = 0.0f;
+
+  sensorStatsGet(sensorCalls, avgDistanceCm);
+
+  INFO("Minute stats -> loopTicks=" + String(loopTicksThisMinute) + 
+       ", sensorCalls=" + String(sensorCalls) +
+       ", avgDistance=" + String(avgDistanceCm, 1) + " cm");
+
+    loopTicksThisMinute = 0;
+}
 
 void logPrint(const String &msg) {
     Serial.print(msg);
@@ -47,7 +69,7 @@ void handleLogger() {
         logClient = newClient;
         RAW("\033[2J\033[H"); // ANSI escape
         INFO("AlarmESP-remake LOG console!\n");
-        INFO("Current uptime: " + String(uptimeMinutes) + " min");
+        // INFO("Current uptime: " + String(uptimeMinutes) + " min");
     }
   }
 }

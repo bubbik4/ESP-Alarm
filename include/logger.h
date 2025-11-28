@@ -10,6 +10,10 @@ void initLogger();
 void handleLogger();
 String getTimestamp();
 
+void loggerLoopTick();
+
+void loggerMinuteCheck();
+
 void logPrint(const String &msg);
 
 void shortBlink(int intrerval = 100);

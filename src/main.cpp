@@ -77,6 +77,7 @@ void setup() {
 }
 
 void loop() {
+  loggerLoopTick();
   handleOTA();
 
   handleLogger();
@@ -92,6 +93,8 @@ void loop() {
    // Telegram | sending + recieveing
   handleTelegramSending();
   handleTelegramUpdates();
+
+  loggerMinuteCheck();
 
   // Time log
 // static uint32_t lastUptimeLog = 0;

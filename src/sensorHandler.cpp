@@ -29,6 +29,9 @@ const int ALARM_COOLDOWN = 30000;
 const float OPEN_THRESHOLD = 15.0; // cm
 const float CLOSE_THRESHOLD = 8.0; // cm
 
+static int   sensorCallsThisMinute = 0;
+static float distanceSumThisMinute = 0.0f;
+
 void buzzerISR() {
   if (alarmTriggered) {
     buzzerState = !buzzerState;
@@ -125,6 +128,7 @@ void handleSensor() {
       // This means the sensor read is correct
       failCount = 0;
       handleAlarm(distance);
+      sensorStatsTick(distance);
   }
 }
 
@@ -140,4 +144,21 @@ void resetAlarm() {
     alarmTriggered = false;
     buzzerState = false;
     digitalWrite(buzz, LOW);
+}
+
+void sensorStatsTick(float lastDistance) {
+  sensorCallsThisMinute++;
+  distanceSumThisMinute += lastDistance;
+}
+
+void sensorStatsGet(int &calls, float &avgDistance) {
+  calls = sensorCallsThisMinute;
+  if (sensorCallsThisMinute > 0) {
+    avgDistance = distanceSumThisMinute / sensorCallsThisMinute;
+  } else {
+    avgDistance = 0.0f;
+  }
+
+  sensorCallsThisMinute = 0;
+  distanceSumThisMinute = 0.0f;
 }
