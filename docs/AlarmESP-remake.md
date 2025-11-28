@@ -5,8 +5,8 @@
 2. [Struktura projektu](#struktura-projektu)
 3. [Moduły i pliki](#moduły-i-pliki)
 4. [Konfiguracja](#konfiguracja)
-6. [API](#api)
-7. [Notatki i uwagi](#notatki-i-uwagi)
+5. [API](#api)
+6. [Notatki i uwagi](#notatki-i-uwagi)
 
 ---
 
@@ -22,34 +22,37 @@ Projekt integruje:
 
 ## Struktura projektu
 
+```text
 AlarmESPv2/
-│
 ├── src/
-│ ├── main.cpp # Punkt wejścia programu
-│ ├── sensorHandler.cpp # Obsługa czujnika i logiki alarmu
-│ ├── logger.cpp # Logger TCP i LED
-│ ├── handleTelegram.cpp# Komunikacja z Telegramem
-│ └── otaHandle.cpp # Aktualizacja OTA
+│   ├── main.cpp              # Punkt wejścia programu
+│   ├── sensorHandler.cpp     # Obsługa czujnika i logiki alarmu
+│   ├── logger.cpp            # Logger TCP i LED
+│   ├── handleTelegram.cpp    # Komunikacja z Telegramem
+│   └── otaHandle.cpp         # Aktualizacja OTA
 │
 ├── include/
-│ ├── sensorHandler.h
-│ ├── logger.h
-│ ├── telegramHandler.h
-│ ├── otaHandle.h
-│ ├── wifiAuth.h # Dane Wi-Fi
-│ └── telegramBotID.h # Token bota i chat_id
+│   ├── sensorHandler.h
+│   ├── logger.h
+│   ├── telegramHandler.h
+│   ├── otaHandle.h
+│   ├── wifiAuth.h            # Dane Wi-Fi
+│   └── telegramBotID.h       # Token bota i chat_id
 │
 └── docs/
-└── AlarmESPv2.md # Dokumentacja
+    └── AlarmESPv2.md         # Dokumentacja
+```
 
 ---
+
+
 
 ## Moduły i pliki
 
 ### 1. `main.cpp`
-- Inicjalizacja wszystkich modułow:
+- Inicjalizacja wszystkich modułów:
     - `initSensor()`, `initLogger()`, `initOTA()`, `initTelegram()`
-- pętla głowna `loop()` obsługująca:
+- pętla główna `loop()` obsługująca:
     - OTA, Logger, Sensor, Telegram
 
 ---
@@ -77,7 +80,7 @@ float getLastDistance();
 - Format logów: `[TIMESTAMP][LEVEL]MESSAGE`
 - Funkcje:
     - `LOG()`, `INFO()`, `WARN()`, `ERROR()`, `ALERT()`
-    - `getTimeStamp()`
+    - `getTimestamp()`
     - `shortBlink(int interval)` - szybkie miganie LED dla debugowania
 
 ---
@@ -113,7 +116,7 @@ float getLastDistance();
 ### 7. `telegramBotID.h`
 ```cpp
 #define BOT_TOKEN "token_bota"
-extern const long ALLOWED_CHAT_ID
+extern const long ALLOWED_CHAT_ID;
 ```
 
 ---
@@ -133,7 +136,7 @@ extern const long ALLOWED_CHAT_ID
 
 | Funkcja                               | Plik             | Opis                                |
 | ------------------------------------- | ---------------- | ----------------------------------- |
-| `initSensor()`                        | sensorHandler.h  | Inicjalizacja pinów i buzera        |
+| `initSensor()`                        | sensorHandler.h  | Inicjalizacja pinów i buzzera       |
 | `handleSensor()`                      | sensorHandler.h  | Odczyt czujnika i obsługa alarmu    |
 | `isAlarmTriggered()`                  | sensorHandler.h  | Zwraca stan alarmu                  |
 | `getLastDistance()`                   | sensorHandler.h  | Zwraca ostatnią zmierzoną odległość |
@@ -153,7 +156,7 @@ extern const long ALLOWED_CHAT_ID
 - Filtr odczytu czujnika: z 5 pomiarów
 - Buzzer sterowany przez Ticker co 100ms
 - Komendy Telegram obsługiwane tylko dla `ALLOWED_CHAT_ID`
-- Logger TCP może obsługiwać wielu klientów jednocześnie
+- Logger TCP może obsługiwać wielu klientów jednocześnie, port domyślny: 7777
 - OTA wymaga podłączenia ESP do sieci Wi-Fi
 
 ---
