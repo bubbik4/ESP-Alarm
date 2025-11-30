@@ -1,14 +1,14 @@
 # AlarmESPv2 - Dokumentacja Projektu
 
-> **Wersja dokumentacji:** 1.1.0
-> **Dotyczy wersji firmware:** v1.1.0
-> **Data:** 2025-11-29
+> **Wersja dokumentacji:** 1.2.0
+> **Dotyczy wersji firmware:** v1.2.0
+> **Data:** 2025-11-30
 
 ## Spis treści
 1. [Opis projektu](#opis-projektu)
 2. [Struktura projektu](#struktura-projektu)
 3. [Moduły i pliki](#moduły-i-pliki)
-4. [Konfiguracja](#konfiguracja)
+4. [Pierwsze uruchomienie](#pierwsze-uruchomienie)
 5. [API](#api)
 6. [Notatki i uwagi](#notatki-i-uwagi)
 
@@ -22,6 +22,7 @@ Projekt integruje:
 - Aktualizacje OTA (Over-The-Air),
 - Buzzer sygnalizacyjny,
 - Prosty mechanizm statystyk sensora (średnia odległość, liczba pomiarów, wywołań `loop()`).
+- WiFi manager
 
 ---
 
@@ -34,14 +35,15 @@ AlarmESPv2/
 │   ├── sensorHandler.cpp     # Obsługa czujnika i logiki alarmu
 │   ├── logger.cpp            # Logger TCP, statystyki minutowe, LED
 │   ├── handleTelegram.cpp    # Komunikacja z Telegramem
-│   └── otaHandle.cpp         # Aktualizacja OTA
+│   ├── otaHandle.cpp         # Aktualizacja OTA
+│   └── wifiHandler.cpp       # Obsługa połączenia WiFi i konfiguracji, WiFiManager
 │
 ├── include/
 │   ├── sensorHandler.h
 │   ├── logger.h
 │   ├── telegramHandler.h
 │   ├── otaHandle.h
-│   ├── wifiAuth.h            # Dane Wi-Fi
+│   ├── wifiHandler.h         
 │   └── telegramBotID.h       # Token bota i chat_id
 │
 └── docs/
@@ -67,8 +69,10 @@ AlarmESPv2/
     - `getFilteredDistance()` - średnia z 5 ostatnich odczytów (filtrowanie szumów)
     - `handleAlarm(distance)` - logika alarmu (otwarte/zamknięte drzwi)
     - W razie 10 kolejnych nieudanych odczytów - restart (`ESP.restart()`)
+- Histereza alarmu:
+    - logika alarmyu wykorzystuje dwa progi (`OPEN_THRESHOLD`, `CLOSE_THRESHOLD`), aby zapobiec migotaniu stanu na granicy.
 - Buzzer:
-    - `buzzerISR()` - sygnalizacja miganiem
+    - `buzzerISR()` - sygnalizacja miganiem za pomocą `Ticker`
 - Powiadomienia:
     - `sendAlarmNotification(distance)` - wysyła wiadomość Telegram
 - Statystyki minutowa:
@@ -148,12 +152,18 @@ void sensorStatsGet(int &calls, float &avgDistanceCm);
 
 ---
 
-### 6. `wifiAuth.h`
-Plik z danymi do Wi-Fi 
-```cpp
-#define WIFI_SSID "nazwa_sieci"
-#define WIFI_PASSWORD "haslo_sieci"
-```
+### 6. `wifiHandler.cpp/h`
+ - Zastępuje plik wifiAuth.h i logikę łączenia w `main.cpp`
+ - `initWiFiManager()`:
+    - Uruchamia **WiFiManager**. Przy pierwszym starcie lub po utracie danych, inicjuje Captive Portal (AP o nazwie `AlarmESP-Setup`).
+    - Ustawia timeout konfiguracyjny (180s).
+    - Konfiguruje automatyczne ponawianie połączenia (`WiFiAutoReconnect(true)`).
+- `configModeCallback()`:
+    - Wywoływany, gdy ESP wchodzi w tryb AP.
+    - Uruchamia nieblokujące miganie LED za pomocą `Ticker`, aby wizualnie zasygnalizować potrzebę konfiguracji.
+- `handleWiFiConnection()`:
+    - Sprawdza status połączenia w pętli `loop()` (co 30 sekund).
+    - Loguje ostrzeżenia o utracie połączenia
 
 ---
 
@@ -166,37 +176,44 @@ extern const long ALLOWED_CHAT_ID;
 
 ---
 
-## Konfiguracja
+## Pierwsze uruchomienie
+- Po pierwszym wgraniu firmware urządzenie wejdzie w tryb konfiguracji:
  
-### 1. Skopiuj i wypełnij dane WiFi w `wifiAuth.h`.
-### 2. Skopiuj i ustaw `BOT_TOKEN` i `ALLOWED_CHAT_ID` w `telegramBotID.h`.
-### 3. Skonfiguruj progi alarmu w `sensorHandler.cpp`:
+### 1. Dioda LED zacznie szybko migać
+### 2. Połącz się do sieci WiFi o nazwie `AlarmESP-Setup`.
+### 3. Po połączeniu uruchomi się przeglądarka ze stroną konfiguracyjną. Wybierz swoją sieć i podaj hasło.
+### 4. Urządzenie zapisze dane i skonfiguruje się w tryb alarmu.
+### 5. Skopiuj i ustaw `BOT_TOKEN` i `ALLOWED_CHAT_ID` w `telegramBotID.h`.
+### 6. Skonfiguruj progi alarmu w `sensorHandler.cpp`:
     - `OPEN_THRESHOLD`  - odległość uznawana za otwarcie
     - `CLOSE_THRESHOLD` - odległość uznawana za zamknięcie
-### 4. Opcjonalnie zmień port TCP logów w  `logger.cpp`
+### 7. Opcjonalnie zmień port TCP logów w  `logger.cpp`
 
 ---
 
 ## API
 
-| Funkcja                               | Plik             | Opis                                |
-| ------------------------------------- | ---------------- | ----------------------------------- |
-| `initSensor()`                        | sensorHandler.h  | Inicjalizacja pinów i buzzera       |
-| `handleSensor()`                      | sensorHandler.h  | Odczyt czujnika i obsługa alarmu    |
-| `isAlarmTriggered()`                  | sensorHandler.h  | Zwraca stan alarmu                  |
-| `getLastDistance()`                   | sensorHandler.h  | Zwraca ostatnią zmierzoną odległość |
-| `initTelegram()`                      | handleTelegram.h | Inicjalizacja bota Telegram         |
-| `queueTelegramMessage(chatId, msg)`   | handleTelegram.h | Dodaje wiadomość do kolejki         |
-| `handleTelegramSending()`             | handleTelegram.h | Wysyła kolejkę wiadomości           |
-| `handleTelegramUpdates()`             | handleTelegram.h | Polling nowych wiadomości           |
-| `initOTA()`                           | otaHandle.h      | Inicjalizacja OTA                   |
-| `handleOTA()`                         | otaHandle.h      | Obsługa OTA w pętli                 |
-| `LOG()/INFO()/WARN()/ERROR()/ALERT()` | logger.h         | Funkcje logowania TCP i LED         |
-
+| Funkcja                               | Plik             | Opis                                     |
+| ------------------------------------- | ---------------- | ---------------------------------------- |  
+| `initSensor()`                        | sensorHandler.h  | Inicjalizacja pinów i buzzera            |
+| `handleSensor()`                      | sensorHandler.h  | Odczyt czujnika i obsługa alarmu         |
+| `isAlarmTriggered()`                  | sensorHandler.h  | Zwraca stan alarmu                       |
+| `getLastDistance()`                   | sensorHandler.h  | Zwraca ostatnią zmierzoną odległość      |
+| `initTelegram()`                      | handleTelegram.h | Inicjalizacja bota Telegram              |
+| `queueTelegramMessage(chatId, msg)`   | handleTelegram.h | Dodaje wiadomość do kolejki              |
+| `handleTelegramSending()`             | handleTelegram.h | Wysyła kolejkę wiadomości                |
+| `handleTelegramUpdates()`             | handleTelegram.h | Polling nowych wiadomości                |
+| `initOTA()`                           | otaHandle.h      | Inicjalizacja OTA                        |
+| `handleOTA()`                         | otaHandle.h      | Obsługa OTA w pętli                      |
+| `LOG()/INFO()/WARN()/ERROR()/ALERT()` | logger.h         | Funkcje logowania TCP i LED              |
+| `initWiFiManager()`                   | wifiHandler.h    | Uruchamia pk lub łączy z zapisaną siecią |
+| `handleWiFiConenction()`              | wifiHandler.h    | Monitoruje status połączenia w tle       |
+| `getWiFiQuality()`                    | wifiHandler.h    | Zwraca jakość sygnału Wi-Fi (RSSI)       | 
 
 ---
 
 ## Notatki i uwagi
+- Tryb konfiguracji: Sygnalizowany przez szybkie miganie diody LED.
 - Cooldown Telegram: 30 sekund (`ALARM_COOLDOWN`) - chroni przed spamem powiadomień.
 - Filtr odczytu czujnika: z 5 pomiarów czujnika.
 - Buzzer sterowany przez Ticker co 100ms; miga gdy alarm jest aktywny.
@@ -212,6 +229,6 @@ extern const long ALLOWED_CHAT_ID;
 - OTA:
     - wymaga podłączenia ESP do sieci Wi-Fi,
     - podczas aktualizacji odpowiednie eventy są logowane (start, postęp, błąd).
-- Pliki z hasłami (`wifiAuth.h`, `telegramBotID.*`) powinny być wyłączone z publicznego repozytorium (`.gitignore`).
+- Plik z hasłami (`wifiAuth.h`) został usunięty. `telegramBotID.h` powinnien być wyłączony z publicznego repozytorium (`.gitignore`).
 
 ---

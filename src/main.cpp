@@ -2,8 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <time.h>
 
-#include "wifiAuth.h"
-
+#include "wifiHandler.h"
 #include "logger.h"
 #include "sensorHandler.h"
 #include "otaHandler.h"
@@ -47,22 +46,13 @@ void setup() {
   digitalWrite(LED_BUILTIN, 0);
 
   Serial.begin(115200);
+
+  initLogger();
   delay(1000);
   RAW("=== ESP ALARM REMAKE ===");
 
-  // WiFi setup
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  LOG("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    LOG(".");
-  }
-  LOG("WiFi connected. IP: " + WiFi.localIP().toString());
+  initWiFiManager();
   WiFi.setHostname("AlarmESP-remake");
-
-  initLogger();
 
   setupTime();
 
@@ -81,7 +71,8 @@ void loop() {
   handleOTA();
 
   handleLogger();
-
+  handleWiFiConnection();
+  
   // Sensor calling logic
   if(millis() - lastCheckTime >= SENSOR_INTERVAL) {
     lastCheckTime = millis();

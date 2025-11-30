@@ -1,5 +1,7 @@
 #include "logger.h"
 #include "sensorHandler.h"
+#include "wifiHandler.h"
+
 #include <ESP8266WiFi.h>
 #include <time.h>
 
@@ -34,11 +36,13 @@ void loggerMinuteCheck() {
   sensorStatsGet(sensorCalls, avgDistanceCm);
 
   unsigned long uptimeMinutes = getUptimeMinutes();
+  int wifiQuality = getWiFiQuality();
 
   INFO("Minute stats -> uptime=" + String(uptimeMinutes) + 
        " min, loopTicks="        + String(loopTicksThisMinute) + 
        ", sensorCalls="          + String(sensorCalls) +
-       ", avgDistance="          + String(avgDistanceCm, 1) + " cm");
+       ", avgDistance="          + String(avgDistanceCm, 1) + " cm" + 
+       ", WiFi quality: "        + String(wifiQuality) + "%");
 
     loopTicksThisMinute = 0;
 }
