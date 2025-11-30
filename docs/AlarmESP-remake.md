@@ -1,8 +1,8 @@
 # AlarmESPv2 - Dokumentacja Projektu
 
 > **Wersja dokumentacji:** 1.2.2
-> **Dotyczy wersji firmware:** v1.2.2
-> **Data:** 2025-11-30
+> **Dotyczy wersji firmware:** v1.2.3
+> **Data:** 2025-12-01
 
 ## Spis treści
 1. [Opis projektu](#opis-projektu)

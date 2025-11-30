@@ -121,7 +121,7 @@ void checkResetButton() {
   if(buttonState == LOW) {
     if(buttonPressStartTime == 0) {
       buttonPressStartTime = now;
-      LOG("[Button] Press detected.");
+      INFO("[Button] Press detected.");
     }
     else if(now - buttonPressStartTime >= REQUIRED_HOLD_TIME) {
       if (!configResetRequest) {
@@ -131,14 +131,13 @@ void checkResetButton() {
     }
   } else {
     if(buttonPressStartTime != 0) {
-      LOG("[Button] Released. Hold time" + String(now- buttonPressStartTime) + " ms");
+      INFO("[Button] Released. Hold time: " + String(now- buttonPressStartTime) + " ms");
       buttonPressStartTime = 0;
     }
   }
 }
 
 void handleSensor() {
-  checkResetButton();
 
   digitalWrite(trig, 0);
   delayMicroseconds(2);

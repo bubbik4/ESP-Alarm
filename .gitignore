@@ -1,5 +1,5 @@
 .pio
 .vscode
-/test/*
+test/
 include/wifiAuth.h
 include/telegramBotID.h

@@ -35,7 +35,7 @@ void initWiFiManager() {
 
     // setting timeout for config portal
     // if noone connects, ESP tries to restart, or operate offline
-    wifiManager.setTimeout(180000); // 180s
+    wifiManager.setTimeout(180); // 180s
 
     LOG("Connecting to WiFi via WiFiManager...");
 
@@ -78,7 +78,7 @@ int getWiFiQuality() {
 
 void checkForConfigReset() {
     if (isConfigResetRequested()) {
-        ALERT("Starting hard reset if WiFi config...");
+        ALERT("Starting hard reset of WiFi config...");
 
         wifiManager.resetSettings();
         clearConfigResetRequest();

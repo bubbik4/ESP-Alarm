@@ -74,6 +74,8 @@ void loop() {
   handleLogger();
   handleWiFiConnection();
 
+  checkResetButton();
+
   // Sensor calling logic
   if(millis() - lastCheckTime >= SENSOR_INTERVAL) {
     lastCheckTime = millis();
