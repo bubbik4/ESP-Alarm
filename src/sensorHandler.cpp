@@ -11,7 +11,7 @@ const int buzz = D8;
 volatile bool buzzerState = false;
 Ticker buzzerTicker;
 
-static bool alarmTriggered = false;
+static volatile bool alarmTriggered = false;
 int alarmArmed = 1;
 
 static float distance = 0;

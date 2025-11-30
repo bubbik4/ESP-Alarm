@@ -26,7 +26,7 @@ void setupTime() {
   INFO("Waiting for NTP time sync...");
   int retry = 0;
   time_t now = time(nullptr);
-  while (now < 1000000000 && retry <10) {
+  while (now < 1000000000 && retry <30) {
     //waiting for correct time
     delay(500);
     INFO("still waiting...");
