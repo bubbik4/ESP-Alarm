@@ -54,13 +54,13 @@ void setup() {
   initWiFiManager();
   WiFi.setHostname("AlarmESP-remake");
 
-  setupTime();
 
   initOTA();
 
   initSensor();
 
   initTelegram();
+  setupTime();
 
   digitalWrite(LED_BUILTIN, 1);
   shortBlink();
@@ -72,14 +72,13 @@ void loop() {
 
   handleLogger();
   handleWiFiConnection();
-  
+
   // Sensor calling logic
   if(millis() - lastCheckTime >= SENSOR_INTERVAL) {
     lastCheckTime = millis();
-    if(alarmArmed) {
-      handleSensor();
-    }
+    handleSensor();
   }
+  checkForConfigReset();
 
    // Telegram | sending + recieveing
   handleTelegramSending();

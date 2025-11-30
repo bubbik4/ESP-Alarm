@@ -13,6 +13,8 @@ static int loopTicksThisMinute    = 0;
 static unsigned long lastMinuteTs = 0;
 static unsigned long startMillis  = millis();
 
+
+
 static unsigned long getUptimeMinutes() {
   unsigned long now = millis();
   unsigned long elapsedMs = now - startMillis;
@@ -38,7 +40,7 @@ void loggerMinuteCheck() {
   unsigned long uptimeMinutes = getUptimeMinutes();
   int wifiQuality = getWiFiQuality();
 
-  INFO("Minute stats -> uptime=" + String(uptimeMinutes) + 
+  INFO("uptime=" + String(uptimeMinutes) + 
        " min, loopTicks="        + String(loopTicksThisMinute) + 
        ", sensorCalls="          + String(sensorCalls) +
        ", avgDistance="          + String(avgDistanceCm, 1) + " cm" + 
@@ -57,7 +59,7 @@ void logPrint(const String &msg) {
 String getTimestamp() {
   time_t now = time(nullptr);
   struct tm* timeinfo = localtime(&now);
-  char buf[20];
+  char buf[30];
   snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
         timeinfo->tm_year + 1900, 
         timeinfo->tm_mon + 1, 
@@ -78,7 +80,7 @@ void initLogger() {
 
 void handleLogger() {
     if(!logClient || !logClient.connected()) {
-    WiFiClient newClient = logServer.available();
+    WiFiClient newClient = logServer.accept();
     if(newClient) {
         logClient = newClient;
         RAW("\033[2J\033[H"); // ANSI escape

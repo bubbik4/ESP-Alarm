@@ -2,11 +2,19 @@
 #include "logger.h"
 #include "telegramBotID.h"
 #include "telegramHandler.h"
+
 #include <Ticker.h>
 
 const int trig = D6;
 const int echo = D5;
 const int buzz = D8;
+
+const int CONFIG_RESET_PIN = D3;
+
+static bool configResetRequest = false;
+static unsigned long buttonPressStartTime = 0;
+const long REQUIRED_HOLD_TIME = 3000;
+const long DEBOUNCE_DELAY = 50; // ms
 
 volatile bool buzzerState = false;
 Ticker buzzerTicker;
@@ -100,13 +108,37 @@ void initSensor() {
     pinMode(trig, OUTPUT);
     pinMode(echo, INPUT);
     pinMode(buzz, OUTPUT);
+    pinMode(CONFIG_RESET_PIN, INPUT_PULLUP);
     digitalWrite(buzz, LOW);
 
     buzzerTicker.attach_ms(100, buzzerISR);
 }
 
-void handleSensor() {
+void checkResetButton() {
+  int buttonState = digitalRead(CONFIG_RESET_PIN);
+  unsigned long now = millis();
 
+  if(buttonState == LOW) {
+    if(buttonPressStartTime == 0) {
+      buttonPressStartTime = now;
+      LOG("[Button] Press detected.");
+    }
+    else if(now - buttonPressStartTime >= REQUIRED_HOLD_TIME) {
+      if (!configResetRequest) {
+        configResetRequest = true;
+        ALERT("WiFi Config Reset Requested");
+      }
+    }
+  } else {
+    if(buttonPressStartTime != 0) {
+      LOG("[Button] Released. Hold time" + String(now- buttonPressStartTime) + " ms");
+      buttonPressStartTime = 0;
+    }
+  }
+}
+
+void handleSensor() {
+  checkResetButton();
 
   digitalWrite(trig, 0);
   delayMicroseconds(2);
@@ -161,4 +193,13 @@ void sensorStatsGet(int &calls, float &avgDistance) {
 
   sensorCallsThisMinute = 0;
   distanceSumThisMinute = 0.0f;
+}
+
+
+bool isConfigResetRequested() {
+  return configResetRequest;
+}
+
+void clearConfigResetRequest() {
+  configResetRequest = false;
 }

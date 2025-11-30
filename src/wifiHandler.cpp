@@ -1,10 +1,14 @@
 #include "wifiHandler.h"
 #include "logger.h"
+#include "sensorHandler.h"
+
 #include <ESP8266WiFi.h>
 #include <WiFiManager.h>
 #include <Ticker.h>
 
 Ticker wifiConfigTicker;
+
+WiFiManager wifiManager;
 
 // Timer for checking connection in loop()
 static unsigned long lastWiFiCheck = 0;
@@ -24,7 +28,6 @@ void configModeCallback(WiFiManager *myWiFiManager) {
 }
 
 void initWiFiManager() {
-    WiFiManager wifiManager;
 
     // conf
     wifiManager.setDebugOutput(false); // ty, have my own logger
@@ -71,4 +74,16 @@ int getWiFiQuality() {
     if(rssi <= -100) return 0;
     if(rssi >= -50) return 100;
     return 2 * (rssi + 100);
+}
+
+void checkForConfigReset() {
+    if (isConfigResetRequested()) {
+        ALERT("Starting hard reset if WiFi config...");
+
+        wifiManager.resetSettings();
+        clearConfigResetRequest();
+
+        delay(1000);
+        ESP.restart();
+    }
 }
