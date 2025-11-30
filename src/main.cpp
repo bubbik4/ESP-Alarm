@@ -36,6 +36,7 @@ void setupTime() {
     WARN("Failed to get time from NTP, logs won't have accurate timestamps");
   } else {
     LOG("NTP time synchronized");
+    bootTimeRaw = now;
   }
 }
 

@@ -1,7 +1,7 @@
 # AlarmESPv2 - Dokumentacja Projektu
 
-> **Wersja dokumentacji:** 1.2.0
-> **Dotyczy wersji firmware:** v1.2.0
+> **Wersja dokumentacji:** 1.2.2
+> **Dotyczy wersji firmware:** v1.2.2
 > **Data:** 2025-11-30
 
 ## Spis treści
@@ -32,7 +32,7 @@ Projekt integruje:
 AlarmESPv2/
 ├── src/
 │   ├── main.cpp              # Punkt wejścia programu
-│   ├── sensorHandler.cpp     # Obsługa czujnika i logiki alarmu
+│   ├── sensorHandler.cpp     # Obsługa czujnika, logiki alarmu i przycisku resetu
 │   ├── logger.cpp            # Logger TCP, statystyki minutowe, LED
 │   ├── handleTelegram.cpp    # Komunikacja z Telegramem
 │   ├── otaHandle.cpp         # Aktualizacja OTA
@@ -65,12 +65,16 @@ AlarmESPv2/
 ---
 
 ### 2. `sensorHandler.cpp/h`
+- Przycisk resetu Wi-Fi **(NEW)**:
+    - GPIO 0 jako przycisk resetu konfiguracji
+    - funkcja `checkResetButton()` @ `handleSensor()` monitoruje stan przycisku z użyciem logiki debouncingu
+    - wciśnięcie i przytrzymanie przycisku przez **co najmniej 3 sekundy** ustawia flagę `configResetRequest`
 - Obsługa czujnika HC-SR04:
     - `getFilteredDistance()` - średnia z 5 ostatnich odczytów (filtrowanie szumów)
     - `handleAlarm(distance)` - logika alarmu (otwarte/zamknięte drzwi)
     - W razie 10 kolejnych nieudanych odczytów - restart (`ESP.restart()`)
 - Histereza alarmu:
-    - logika alarmyu wykorzystuje dwa progi (`OPEN_THRESHOLD`, `CLOSE_THRESHOLD`), aby zapobiec migotaniu stanu na granicy.
+    - logika alarmu wykorzystuje dwa progi (`OPEN_THRESHOLD`, `CLOSE_THRESHOLD`), aby zapobiec migotaniu stanu na granicy.
 - Buzzer:
     - `buzzerISR()` - sygnalizacja miganiem za pomocą `Ticker`
 - Powiadomienia:
@@ -89,6 +93,8 @@ bool isAlarmTriggered();
 float getLastDistance();
 void sensorStatsTick(float lastDistance);
 void sensorStatsGet(int &calls, float &avgDistanceCm);
+bool isConfigResetRequest();
+void clearConfigResetRequest();
 ```
 
 ---
@@ -118,6 +124,12 @@ void sensorStatsGet(int &calls, float &avgDistanceCm);
     - ilczony lokalnie z wykorzystaniem `millis()`:
         - zmienna `startMills`
         - funkcja pomocnicza `getUptimeMinutes()`
+- Boot time:
+    - po połączeniu z NTP zapisywany jest czas
+    - gdy klient się łączy:
+        - czas jest odpowiednio formatowany w timestamp
+        - i wyświetlany w konsoli
+
 ---
 
 ### 4. `handleTelegram.cpp/h`
@@ -154,6 +166,10 @@ void sensorStatsGet(int &calls, float &avgDistanceCm);
 
 ### 6. `wifiHandler.cpp/h`
  - Zastępuje plik wifiAuth.h i logikę łączenia w `main.cpp`
+ - `checkForConfigReset()` **(NEW)**:
+    - Wywoływana cyklicznie w `loop()`@`main.cpp`.
+    - Jeśli flaga resetu `isConfigResetRequest()` jest aktywna, wywołuje `wifiManager.resetSettings()`, czyści flagę i wykonuje restart `ESP.restart()`. 
+    - W ten sposób wymusza wejście w tryb konfiguracji (Captive Portal).
  - `initWiFiManager()`:
     - Uruchamia **WiFiManager**. Przy pierwszym starcie lub po utracie danych, inicjuje Captive Portal (AP o nazwie `AlarmESP-Setup`).
     - Ustawia timeout konfiguracyjny (180s).
@@ -213,6 +229,9 @@ extern const long ALLOWED_CHAT_ID;
 ---
 
 ## Notatki i uwagi
+- Reset Konfiguracji Wi-Fi **(NEW)**:
+    - Aby zresetować zapisane dane Wi-Fi (SSID/hasło) i przywrócić do trybu Captive Portal, należy przytrzymać przycisk@D3 **co najmniej 3 sekundy**
+    - Nastąpi restart ESP, a urządzenie wejdzie w tryb konfiguracji (AP `AlarmESP-Setup`).
 - Tryb konfiguracji: Sygnalizowany przez szybkie miganie diody LED.
 - Cooldown Telegram: 30 sekund (`ALARM_COOLDOWN`) - chroni przed spamem powiadomień.
 - Filtr odczytu czujnika: z 5 pomiarów czujnika.

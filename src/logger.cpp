@@ -9,11 +9,11 @@
 WiFiServer logServer(7777);
 WiFiClient logClient;
 
+time_t bootTimeRaw = 0;
+
 static int loopTicksThisMinute    = 0;
 static unsigned long lastMinuteTs = 0;
 static unsigned long startMillis  = millis();
-
-
 
 static unsigned long getUptimeMinutes() {
   unsigned long now = millis();
@@ -23,6 +23,22 @@ static unsigned long getUptimeMinutes() {
 
 void loggerLoopTick() {
   loopTicksThisMinute++;
+}
+
+String formatBootTime() {
+  if(bootTimeRaw == 0) {
+    return "N/A (NTP Failed)";
+  }
+  struct tm* timeinfo = localtime(&bootTimeRaw);
+  char buf[30];
+  snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d",
+        timeinfo->tm_year + 1900, 
+        timeinfo->tm_mon + 1, 
+        timeinfo->tm_mday, 
+        timeinfo->tm_hour, 
+        timeinfo->tm_min, 
+        timeinfo->tm_sec);
+  return String(buf);
 }
 
 void loggerMinuteCheck() {
@@ -86,7 +102,8 @@ void handleLogger() {
         RAW("\033[2J\033[H"); // ANSI escape
         INFO("AlarmESP-remake LOG console!\n");
         unsigned long uptimeMinutes = getUptimeMinutes();
-        INFO("Current uptime: " + String(uptimeMinutes) + " min");
+        String formattedTime = formatBootTime();
+        INFO("Current uptime: " + String(uptimeMinutes) + " min | Boot time: " + formattedTime);
     }
   }
 }

@@ -9,7 +9,7 @@ System alarmowy oparty na ESP8266 z:
 
 ## Wersje
 
-Aktualna wersja: **v1.2.1**
+Aktualna wersja: **v1.2.2**
 
 Dokumentacja: [docs/AlarmESPv2.md](docs/AlarmESP-remake.md)
 

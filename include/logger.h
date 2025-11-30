@@ -6,6 +6,8 @@
 extern WiFiServer logServer;
 extern WiFiClient logClient;
 
+extern time_t bootTimeRaw;
+
 void initLogger();
 void handleLogger();
 String getTimestamp();
