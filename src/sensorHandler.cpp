@@ -1,7 +1,6 @@
 #include "sensorHandler.h"
 #include "logger.h"
-#include "telegramBotID.h"
-#include "telegramHandler.h"
+#include "mqttHandler.h"
 
 #include <Ticker.h>
 
@@ -68,18 +67,16 @@ void sendAlarmNotification(float dist) {
   if(millis() - lastAlarmMessage > ALARM_COOLDOWN) {
     lastAlarmMessage = millis();
 
-    String message = "AlarmESP-remake\nalarm triggered!\n";
-    message       += "Measured distance: " + String(dist, 1) + " cm.\n";
+    sendMQTTAlarm(dist);
 
-    queueTelegramMessage(String(ALLOWED_CHAT_ID), message);
   } else {
     unsigned long elapsed = millis() - lastAlarmMessage;
     long remaining = ALARM_COOLDOWN - (long)elapsed;
     if(remaining > 0) {
-      WARN("Telegram message not sent. Message cooldown not met. (" + String(remaining / 1000.0, 1) + " s)");
+      WARN("MQTT message not sent. Message cooldown not met. (" + String(remaining / 1000.0, 1) + " s)");
     } else {
       remaining = 0;
-      ERROR("Telegram message not sent. Door open for too long to reset the cooldown.");
+      ERROR("MQTT message not sent. Door open for too long to reset the cooldown.");
     }
   } 
 }

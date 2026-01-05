@@ -6,7 +6,7 @@
 #include "logger.h"
 #include "sensorHandler.h"
 #include "otaHandler.h"
-#include "telegramHandler.h"
+#include "mqttHandler.h"
 
 const char*  ntpServer          = "pool.ntp.org";
 const long   gmtOffset_sec      = 3600; // GMT+!
@@ -60,7 +60,7 @@ void setup() {
 
   initSensor();
 
-  initTelegram();
+  initMQTT();
   setupTime();
 
   digitalWrite(LED_BUILTIN, 1);
@@ -70,6 +70,8 @@ void setup() {
 void loop() {
   loggerLoopTick();
   handleOTA();
+
+  handleMQTT();
 
   handleLogger();
   handleWiFiConnection();
@@ -83,34 +85,6 @@ void loop() {
   }
   checkForConfigReset();
 
-   // Telegram | sending + recieveing
-  handleTelegramSending();
-  handleTelegramUpdates();
-
   loggerMinuteCheck();
-
-  // Time log
-// static uint32_t lastUptimeLog = 0;
-// if (millis() - lastUptimeLog >= 60000) {
-//   lastUptimeLog += 60000;    // albo lastUptimeLog = millis();
-
-//   uptimeMinutes = millis() / 60000;
-//   LOG(String("Uptime: ") + uptimeMinutes + " min");
-//   shortBlink(50);
-//   INFO("Loop ticks this minute: " + String(loopTicksThisMinute));  // DEBUG
-//   loopTicksThisMinute = 0;                                         // DEBUG
-//   if (samples > 0) {
-//     INFO("Sensor last minute average read: " 
-//       + String(distanceLastMinute / samples)
-//       + " cm (samples: " + String(samples)
-//       + ", handleSensor calls: " + String(sensorCallsThisMinute)
-//       + ")");
-//   } else if (!alarmArmed) {
-//     INFO("Distance measuring OFF.");
-//   } else {
-//     WARN("This shouldn't happen. If you see this, something is not working as it should.");
-//   }
-
-// }
 }
 
