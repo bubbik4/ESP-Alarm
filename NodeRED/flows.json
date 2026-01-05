@@ -1,0 +1,191 @@
+[
+    {
+        "id": "beba4bcdf5239304",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "08df88f708e0d611",
+        "type": "function",
+        "z": "beba4bcdf5239304",
+        "name": "function 2",
+        "func": "// Diagnostyka w Debugu (opcjonalnie)\nnode.warn(msg.payload);\n\n// Próba wyciągnięcia stanu\nvar stan = \"OFF\";\n\n// Wariant 1: Sinric wysyła obiekt z action/value (najczęstszy)\nif (msg.payload && msg.payload.value && msg.payload.value.state) {\n    stan = (msg.payload.value.state === \"On\") ? \"ON\" : \"OFF\";\n}\n// Wariant 2: Sinric wysyła prosty string \"On\"/\"Off\"\nelse if (typeof msg.payload === \"string\") {\n    stan = (msg.payload === \"On\" || msg.payload === \"ON\") ? \"ON\" : \"OFF\";\n}\n// Wariant 3: Sinric wysyła boolean true/false\nelse if (typeof msg.payload === \"boolean\") {\n    stan = (msg.payload) ? \"ON\" : \"OFF\";\n}\n\n// Ustawienie payloadu dla MQTT\nmsg.payload = stan;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 540,
+        "wires": [
+            [
+                "b33c2aa5b258377c"
+            ]
+        ]
+    },
+    {
+        "id": "b33c2aa5b258377c",
+        "type": "mqtt out",
+        "z": "beba4bcdf5239304",
+        "name": "",
+        "topic": "dom/alarm/set",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "afc2b6ed584b6ccd",
+        "x": 920,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "fb65ef5b639368a3",
+        "type": "mqtt in",
+        "z": "beba4bcdf5239304",
+        "name": "",
+        "topic": "dom/alarm/trigger",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "afc2b6ed584b6ccd",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 460,
+        "y": 620,
+        "wires": [
+            [
+                "8447b36f9e27b0e8"
+            ]
+        ]
+    },
+    {
+        "id": "8447b36f9e27b0e8",
+        "type": "function",
+        "z": "beba4bcdf5239304",
+        "name": "function 3",
+        "func": "var tekstAlarmu = msg.payload;\n\nmsg.payload = {\n    chatId: 8524373212, // \n    type: 'message',\n    content: \"🚨 \" + tekstAlarmu\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 620,
+        "wires": [
+            [
+                "b595c1de03816c07"
+            ]
+        ]
+    },
+    {
+        "id": "b595c1de03816c07",
+        "type": "telegram sender",
+        "z": "beba4bcdf5239304",
+        "name": "TGBot",
+        "bot": "76b1a1028e0e02d1",
+        "haserroroutput": false,
+        "outputs": 1,
+        "x": 890,
+        "y": 580,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b1e9ac88a0ed9e5d",
+        "type": "device",
+        "z": "beba4bcdf5239304",
+        "name": "Alarm",
+        "appcredential": "bff1be985cc6f68d",
+        "deviceid": "695c33dc971001dc558c1713",
+        "x": 460,
+        "y": 520,
+        "wires": [
+            [
+                "08df88f708e0d611"
+            ]
+        ]
+    },
+    {
+        "id": "afc2b6ed584b6ccd",
+        "type": "mqtt-broker",
+        "name": "Mosquitto",
+        "broker": "mosquitto",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "76b1a1028e0e02d1",
+        "type": "telegram bot",
+        "botname": "AlarmBot",
+        "usernames": "",
+        "chatids": "8524373212",
+        "baseapiurl": "",
+        "testenvironment": false,
+        "updatemode": "polling",
+        "pollinterval": 300,
+        "usesocks": false,
+        "sockshost": "",
+        "socksprotocol": "socks5",
+        "socksport": 6667,
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbothost": "0.0.0.0",
+        "localbotport": 8443,
+        "publicbotport": 8443,
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
+        "id": "bff1be985cc6f68d",
+        "type": "appcredential",
+        "appkey": "b9834151-fa4b-41eb-99e9-c72870b8e974",
+        "appsecret": "063f4247-4110-4b10-b478-b37c2288387c-2c3e2222-7779-4a7e-8267-ec44856c4e26"
+    },
+    {
+        "id": "d834c8056dfbe732",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-telegrambot": "17.0.3",
+            "@sinricpro/node-red-contrib-sinric-pro": "1.5.2"
+        }
+    }
+]
