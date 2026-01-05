@@ -1,6 +1,7 @@
 #include "sensorHandler.h"
 #include "logger.h"
 #include "mqttHandler.h"
+#include "ledHandler.h"
 
 #include <Ticker.h>
 
@@ -84,6 +85,7 @@ void sendAlarmNotification(float dist) {
 bool handleAlarm(float dist) {
   if(dist > OPEN_THRESHOLD) {                  // door open
    if(!alarmTriggered && alarmArmed) {
+      setLedState(STATE_ALARM);
       alarmTriggered = true;
       LOG("Alarm triggered at distance: " + String(dist, 1) + " cm");
       sendAlarmNotification(dist);
@@ -92,6 +94,11 @@ bool handleAlarm(float dist) {
   } else if(dist < CLOSE_THRESHOLD) {          // door closed
     if(alarmTriggered) {
       LOG("Door closed. Alarm reset at distance: " + String(dist, 1) + " cm");
+      if (alarmArmed) {
+        setLedState(STATE_ARMED);    // Wracamy do czerwonego (czuwanie)
+    } else {
+        setLedState(STATE_DISARMED); // Wracamy do zielonego (rozbrojony)
+    }
       alarmTriggered = false;
     }
     return 0;
@@ -172,6 +179,11 @@ void resetAlarm() {
     alarmTriggered = false;
     buzzerState = false;
     digitalWrite(buzz, LOW);
+    if (alarmArmed) {
+        setLedState(STATE_ARMED);    // Wracamy do czerwonego (czuwanie)
+    } else {
+        setLedState(STATE_DISARMED); // Wracamy do zielonego (rozbrojony)
+    }
 }
 
 void sensorStatsTick(float lastDistance) {

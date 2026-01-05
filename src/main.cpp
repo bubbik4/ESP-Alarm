@@ -7,6 +7,7 @@
 #include "sensorHandler.h"
 #include "otaHandler.h"
 #include "mqttHandler.h"
+#include "ledHandler.h"
 
 const char*  ntpServer          = "pool.ntp.org";
 const long   gmtOffset_sec      = 3600; // GMT+!
@@ -48,6 +49,8 @@ void setup() {
 
   Serial.begin(115200);
 
+  initLeds();
+
   initLogger();
   delay(1000);
   RAW("=== ESP ALARM REMAKE ===");
@@ -65,11 +68,13 @@ void setup() {
 
   digitalWrite(LED_BUILTIN, 1);
   shortBlink();
+  setLedState(STATE_ARMED);
 }
 
 void loop() {
   loggerLoopTick();
   handleOTA();
+  handleLeds();
 
   handleMQTT();
 

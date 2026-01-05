@@ -1,6 +1,8 @@
 #include "mqttHandler.h"
 #include "logger.h"
 #include "sensorHandler.h"
+#include "ledHandler.h"
+
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
@@ -27,11 +29,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
             alarmArmed = 1;
             INFO("System ARMED via MQTT");
             client.publish(topic_status, "ARMED");
+            setLedState(STATE_ARMED);
         } else if (msg == "OFF") {
             alarmArmed = 0;
             resetAlarm();
             INFO("System DISARMED via MQTT");
             client.publish(topic_status, "DARMED");
+            setLedState(STATE_DISARMED);
         }
     }
 }

@@ -1,6 +1,7 @@
 #include "wifiHandler.h"
 #include "logger.h"
 #include "sensorHandler.h"
+#include "ledHandler.h"
 
 #include <ESP8266WiFi.h>
 #include <WiFiManager.h>
@@ -62,6 +63,7 @@ void handleWiFiConnection() {
         lastWiFiCheck = millis();
 
         if(WiFi.status() != WL_CONNECTED) {
+            setLedState(STATE_WIFI_LOST);
             WARN("WiFi connection lost. Reconnecting in backgournd...");
         }
     }
