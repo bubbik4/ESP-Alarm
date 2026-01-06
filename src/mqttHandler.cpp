@@ -16,6 +16,8 @@ const char* topic_set = "dom/alarm/set"; // Odbieranie: ON/OFF
 const char* topic_status = "dom/alarm/status"; // Wysyłanie: ARM/DARM
 const char* topic_trigger = "dom/alarm/trigger"; // Wysyłanie: Włamanie
 
+static bool mqttWasConnected = false;
+
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
     String msg;
     for (int i = 0; i < length; i++) {
@@ -61,6 +63,14 @@ void initMQTT() {
 
 void handleMQTT() {
     if(!client.connected()) {
+        // --- 1. Wykrycie utraty połączenia ---
+        if (mqttWasConnected) {
+            mqttWasConnected = false;
+            WARN("MQTT connection lost! Switching LEDs to YELLOW.");
+            setLedState(STATE_WIFI_LOST); // Ustawiamy żółty pulsujący
+        }
+
+        // Próba ponownego połączenia co 5 sekund
         static unsigned long lastReconnectAttempt = 0;
         unsigned long now = millis();
         if(now - lastReconnectAttempt > 5000) {
@@ -68,6 +78,20 @@ void handleMQTT() {
             reconnect();
         }
     } else {
+        // --- 2. Wykrycie odzyskania połączenia ---
+        if (!mqttWasConnected) {
+            mqttWasConnected = true;
+            INFO("MQTT connection restored! Restoring LED state.");
+            
+            // Przywracamy kolor zgodny z aktualnym stanem systemu
+            if (isAlarmTriggered()) {
+                setLedState(STATE_ALARM);    // Jeśli wyje syrena -> Policja
+            } else if (alarmArmed) {
+                setLedState(STATE_ARMED);    // Jeśli uzbrojony -> Czerwony
+            } else {
+                setLedState(STATE_DISARMED); // Jeśli rozbrojony -> Zielony
+            }
+        }
         client.loop();
     }
 }

@@ -1,38 +1,34 @@
-# AlarmESP-remake
+# AlarmESP-MQTT
 
-System alarmowy oparty na ESP8266 z:
-- czujnikiem ultradźwiękowym (HC-SR04),
-- powiadomieniami Telegram,
-- loggerem TCP,
-- aktualizacjami OTA,
-- buzzerem sygnalizacyjnym.
+System alarmowy oparty na ESP8266, działający jako klient MQTT w ekosystemie Smart Home (Node-RED).
+
+## Główne funkcje:
+- **Detekcja:** Czujnik ultradźwiękowy (HC-SR04) wykrywający otwarcie drzwi/obecność.
+- **Komunikacja:** Protokół MQTT (publikowanie stanu i alarmów, nasłuchiwanie komend uzbrajania).
+- **Sygnalizacja:** Pasek LED WS2812b (NeoPixel) sygnalizujący stany (Uzbrojony, Rozbrojony, Alarm, Brak WiFi).
+- **Zarządzanie:** WiFiManager (konfiguracja sieci bez hardcodowania), OTA (aktualizacje bezprzewodowe), Logger TCP.
 
 ## Wersje
 
-Aktualna wersja firmware: **v1.2.3**
+Aktualna wersja firmware: **v1.2.3 (MQTT Edition)**
 
-Dokumentacja: [docs/AlarmESPv2.md](docs/AlarmESP-remake.md)
+Dokumentacja szczegółowa: [docs/AlarmESP-remake.md](docs/AlarmESP-remake.md)
 
 ## Struktura projektu
 
 ```text
-AlarmESPv2/
+AlarmESP-MQTT/
 ├── src/
-│   ├── main.cpp              # Punkt wejścia programu
-│   ├── sensorHandler.cpp     # Obsługa czujnika i logiki alarmu
-│   ├── logger.cpp            # Logger TCP, statystyki minutowe, LED
-│   ├── handleTelegram.cpp    # Komunikacja z Telegramem
+│   ├── main.cpp              # Punkt wejścia, pętla główna
+│   ├── sensorHandler.cpp     # Obsługa HC-SR04, logika wyzwalania
+│   ├── mqttHandler.cpp       # Klient MQTT (PubSubClient)
+│   ├── ledHandler.cpp        # Obsługa paska LED (Adafruit NeoPixel)
+│   ├── logger.cpp            # Logger TCP i Serial
 │   ├── otaHandle.cpp         # Aktualizacja OTA
-│   └── wifiHandler.cpp       # Obsługa połączenia WiFi i konfiguracji, WiFiManager
+│   └── wifiHandler.cpp       # Obsługa WiFi i Captive Portal
 │
 ├── include/
-│   ├── sensorHandler.h
-│   ├── logger.h
-│   ├── telegramHandler.h
-│   ├── otaHandle.h
-│   ├── wifiHandler.h         
-│   └── telegramBotID.h       # Token bota i chat_id
+│   ├── (pliki nagłówkowe .h odpowiadające modułom wyżej)
 │
 └── docs/
-    └── AlarmESPv2.md         # Dokumentacja
-```
+    └── AlarmESP-remake.md    # Dokumentacja techniczna
