@@ -51,6 +51,9 @@ void initWiFiManager() {
     // there is a connection if u here
     wifiConfigTicker.detach();
     digitalWrite(LED_BUILTIN, HIGH);
+
+    WiFi.setSleepMode(WIFI_NONE_SLEEP);
+
     LOG("WiFi connected succesfully!");
 
     // auto-reconnect

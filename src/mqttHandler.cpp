@@ -51,7 +51,7 @@ void reconnect() {
             client.subscribe(topic_set);
             sendMQTTStatus();
         } else {
-            //
+            ERROR("MQTT Connect failed! State (rc) = " + String(client.state()));
         }
     }
 }
@@ -73,7 +73,7 @@ void handleMQTT() {
         // Próba ponownego połączenia co 5 sekund
         static unsigned long lastReconnectAttempt = 0;
         unsigned long now = millis();
-        if(now - lastReconnectAttempt > 5000) {
+        if(now - lastReconnectAttempt > 150000) {
             lastReconnectAttempt = now;
             reconnect();
         }
