@@ -15,6 +15,7 @@ const char* mqtt_server = "10.10.0.70"; // RPi IP
 const char* topic_set = "dom/alarm/set"; // Odbieranie: ON/OFF
 const char* topic_status = "dom/alarm/status"; // Wysyłanie: ARM/DARM
 const char* topic_trigger = "dom/alarm/trigger"; // Wysyłanie: Włamanie
+const char* topic_lwt = "dom/alarm/LWT";
 
 static bool mqttWasConnected = false;
 
@@ -46,8 +47,11 @@ void reconnect() {
     if(!client.connected()) {
         //ID klienta
         String clientId = "AlarmESP" + String(ESP.getChipId(), HEX);
-        if(client.connect(clientId.c_str())) {
+        if(client.connect(clientId.c_str(), topic_lwt, 1, true, "OFFLINE")) {
             LOG("MQTT Connected!");
+            
+            client.publish(topic_lwt, "ONLINE", true);
+
             client.subscribe(topic_set);
             sendMQTTStatus();
         } else {
