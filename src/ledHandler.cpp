@@ -23,6 +23,39 @@ void initLeds() {
     strip.show();
 }
 
+uint32_t getColor(uint8_t r, uint8_t g, uint8_t b) {
+    return strip.Color(r, g, b);
+}
+
+void reportError(int count, uint32_t color) {
+    int oldBrightness = strip.getBrightness();
+    strip.setBrightness(150);
+
+    for(int i = 0; i < 3; i++) {
+        strip.fill(strip.Color(255, 255, 255)); // BIAŁY
+        strip.show();
+        delay(100);
+        strip.clear();
+        strip.show();
+        delay(100);
+    }
+
+    delay(500);
+
+    //err code
+    for(int i = 0; i < count; i++) {
+        strip.fill(color);
+        strip.show();
+        delay(400); // Dłuższe świecenie
+        strip.clear();
+        strip.show();
+        delay(300); // Przerwa
+    }
+
+
+    strip.setBrightness(oldBrightness);
+}
+
 void colorWipe(uint32_t color) {
     for(int i=0; i<strip.numPixels(); i++) {
         strip.setPixelColor(i, color);
@@ -70,7 +103,7 @@ void handleLeds() {
                     fadeAmount = -fadeAmount;
                 }
                 // Efekt pulsowania tylko kanałem R
-                strip.fill(strip.Color(brightness, 0, 0));
+                strip.fill(strip.Color(brightness, 0, brightness/2));
                 strip.show();
             }
             break;
@@ -104,5 +137,21 @@ void setLedState(SystemState newState) {
     // Reset zmiennych animacji
     brightness = 50; 
     strip.clear();
+    strip.show();
+}
+
+void updateOtaProgress(int percent) {
+    int ledsToLight = map(percent, 0, 100, 0, NUM_LEDS);
+
+    uint32_t color = strip.Color(0,255,255);
+
+    if(percent >=100) {
+        color = strip.Color(0,255,0);
+    }
+
+    strip.clear();
+    for(int i = 0; i < ledsToLight; i++) {
+        strip.setPixelColor(i, color);
+    }
     strip.show();
 }

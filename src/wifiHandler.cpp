@@ -66,8 +66,9 @@ void handleWiFiConnection() {
         lastWiFiCheck = millis();
 
         if(WiFi.status() != WL_CONNECTED) {
+            reportError(2, getColor(0,0,255));
             setLedState(STATE_WIFI_LOST);
-            WARN("WiFi connection lost. Reconnecting in backgournd...");
+            WARN("WiFi connection lost. Reconnecting in background...");
         }
     }
 }
@@ -84,6 +85,7 @@ int getWiFiQuality() {
 void checkForConfigReset() {
     if (isConfigResetRequested()) {
         ALERT("Starting hard reset of WiFi config...");
+        reportError(4, getColor(200, 0, 255));
 
         wifiManager.resetSettings();
         clearConfigResetRequest();

@@ -142,28 +142,36 @@ void checkResetButton() {
 }
 
 void handleSensor() {
+  if(alarmArmed) {
 
-  digitalWrite(trig, 0);
-  delayMicroseconds(2);
-  digitalWrite(trig, 1);
-  delayMicroseconds(10);
-  digitalWrite(trig, 0);
+    digitalWrite(trig, 0);
+    delayMicroseconds(2);
+    digitalWrite(trig, 1);
+    delayMicroseconds(10);
+    digitalWrite(trig, 0);
 
-  distance = getFilteredDistance();
-  // distance = getMedianDistance();
-  if(duration <= 0) {
-    failCount++;
-    WARN("Sensor read failure [" + String(failCount) + "]");
-    if(failCount >= 10) {
-      ERROR("No answer from sensor in 10 tries. Rebooting"); 
-      delay(1000);
-      ESP.restart();
+    distance = getFilteredDistance();
+    // distance = getMedianDistance();
+    if(duration <= 0) {
+      failCount++;
+      WARN("Sensor read failure [" + String(failCount) + "]");
+
+      if(failCount == 5) {
+        reportError(5, getColor(255, 0, 0));
+      }
+
+      if(failCount >= 10) {
+        ERROR("No answer from sensor in 10 tries. Rebooting"); 
+        reportError(5, getColor(255,0,0));
+        delay(1000);
+        ESP.restart();
+      }
+    } else {
+        // This means the sensor read is correct
+        failCount = 0;
+        handleAlarm(distance);
+        sensorStatsTick(distance);
     }
-  } else {
-      // This means the sensor read is correct
-      failCount = 0;
-      handleAlarm(distance);
-      sensorStatsTick(distance);
   }
 }
 
