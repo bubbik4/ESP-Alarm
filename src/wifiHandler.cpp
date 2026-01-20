@@ -8,12 +8,11 @@
 #include <Ticker.h>
 
 Ticker wifiConfigTicker;
-
 WiFiManager wifiManager;
 
 // Timer for checking connection in loop()
-static unsigned long lastWiFiCheck = 0;
-const unsigned long WIFI_CHECK_INTERVAL = 30000; // 30s
+// static unsigned long lastWiFiCheck = 0;
+// const unsigned long WIFI_CHECK_INTERVAL = 30000; // 30s
 
 void tickConfigLed() {
     int state = digitalRead(LED_BUILTIN);
@@ -29,7 +28,6 @@ void configModeCallback(WiFiManager *myWiFiManager) {
 }
 
 void initWiFiManager() {
-
     // conf
     wifiManager.setDebugOutput(false); // ty, have my own logger
     wifiManager.setAPCallback(configModeCallback);
@@ -46,6 +44,7 @@ void initWiFiManager() {
 
         delay(3000); //3s
         // either offline or restart
+        ESP.restart();
     }
 
     // there is a connection if u here
@@ -53,38 +52,16 @@ void initWiFiManager() {
     digitalWrite(LED_BUILTIN, HIGH);
 
     WiFi.setSleepMode(WIFI_NONE_SLEEP);
-
-    LOG("WiFi connected succesfully!");
-
     // auto-reconnect
     WiFi.setAutoReconnect(true);
     WiFi.persistent(true); // data stored in flash
-} 
 
-void handleWiFiConnection() {
-    if(millis() - lastWiFiCheck >= WIFI_CHECK_INTERVAL) {
-        lastWiFiCheck = millis();
-
-        if(WiFi.status() != WL_CONNECTED) {
-            reportError(2, getColor(0,0,255));
-            setLedState(STATE_WIFI_LOST);
-            WARN("WiFi connection lost. Reconnecting in background...");
-        }
-    }
-}
-
-int getWiFiQuality() {
-    if(WiFi.status() != WL_CONNECTED) return 0;
-    long rssi = WiFi.RSSI();
-
-    if(rssi <= -100) return 0;
-    if(rssi >= -50) return 100;
-    return 2 * (rssi + 100);
+    LOG("WiFi connected succesfully! IP: " + WiFi.localIP().toString());
 }
 
 void checkForConfigReset() {
     if (isConfigResetRequested()) {
-        ALERT("Starting hard reset of WiFi config...");
+        ALERT("ERASING WIFI SETTINGS...");
         reportError(4, getColor(200, 0, 255));
 
         wifiManager.resetSettings();

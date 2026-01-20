@@ -44,8 +44,6 @@ void loop() {
   handleLeds();
   handleMQTT();
 
-  handleWiFiConnection();
-
   checkResetButton();
   checkForConfigReset();
 
