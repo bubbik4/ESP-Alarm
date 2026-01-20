@@ -9,51 +9,21 @@
 #include "mqttHandler.h"
 #include "ledHandler.h"
 
-const char*  ntpServer          = "pool.ntp.org";
-const long   gmtOffset_sec      = 3600; // GMT+!
-const int    daylightOffset_sec = 0;
-
-
 static uint32_t lastCheckTime = 0;
 const unsigned long SENSOR_INTERVAL = 500;
 
-
-
-
-void setupTime() {
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-
-  INFO("Waiting for NTP time sync...");
-  int retry = 0;
-  time_t now = time(nullptr);
-  while (now < 1000000000 && retry <30) {
-    //waiting for correct time
-    delay(500);
-    INFO("still waiting...");
-    now = time(nullptr);
-    retry++;
-  }
-  if(now < 1000000000) {
-    WARN("Failed to get time from NTP, logs won't have accurate timestamps");
-  } else {
-    LOG("NTP time synchronized");
-    bootTimeRaw = now;
-  }
-}
-
- // branchtest
-
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(115200);
+  delay(500);
+  RAW("=== ESP ALARM on MQTT ===");
+
   digitalWrite(LED_BUILTIN, 0);
 
   Serial.begin(115200);
 
   initLeds();
-
-  initLogger();
-  delay(1000);
-  RAW("=== ESP ALARM REMAKE ===");
+  initSensor();
+  
 
   initWiFiManager();
   WiFi.setHostname("AlarmESP-remake");
@@ -61,35 +31,28 @@ void setup() {
 
   initOTA();
 
-  initSensor();
 
   initMQTT();
-  setupTime();
 
   digitalWrite(LED_BUILTIN, 1);
-  shortBlink();
   setLedState(STATE_ARMED);
 }
 
 void loop() {
-  loggerLoopTick();
+
   handleOTA();
   handleLeds();
-
   handleMQTT();
 
-  handleLogger();
   handleWiFiConnection();
 
   checkResetButton();
+  checkForConfigReset();
 
   // Sensor calling logic
   if(millis() - lastCheckTime >= SENSOR_INTERVAL) {
     lastCheckTime = millis();
     handleSensor();
   }
-  checkForConfigReset();
-
-  loggerMinuteCheck();
 }
 

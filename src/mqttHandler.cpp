@@ -5,7 +5,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-WiFiClient espClient;
+WiFiClient   espClient;
 PubSubClient client(espClient);
 
 const char* mqtt_server = "10.10.0.70"; // IP Maliny
