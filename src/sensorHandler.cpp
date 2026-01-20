@@ -8,7 +8,6 @@
 const int trig = D6;
 const int echo = D5;
 const int buzz = D8;
-
 const int CONFIG_RESET_PIN = D3;
 
 static bool configResetRequest = false;
@@ -16,11 +15,8 @@ static unsigned long buttonPressStartTime = 0;
 const long REQUIRED_HOLD_TIME = 3000;
 const long DEBOUNCE_DELAY = 50; // ms
 
-volatile bool buzzerState = false;
-Ticker buzzerTicker;
-
 static volatile bool alarmTriggered = false;
-int alarmArmed = 1;
+int alarmArmed = 0; 
 
 static float distance = 0;
 static float duration = 0;
@@ -37,8 +33,8 @@ const int ALARM_COOLDOWN = 30000;
 const float OPEN_THRESHOLD = 15.0; // cm
 const float CLOSE_THRESHOLD = 8.0; // cm
 
-static int   sensorCallsThisMinute = 0;
-static float distanceSumThisMinute = 0.0f;
+Ticker buzzerTicker;
+volatile bool buzzerState = false;
 
 void buzzerISR() {
   if (alarmTriggered) {
@@ -100,9 +96,9 @@ bool handleAlarm(float dist) {
         setLedState(STATE_DISARMED); // Wracamy do zielonego (rozbrojony)
     }
       alarmTriggered = false;
-    }
+    } // if
     return 0;
-  }
+  } // else if
 
   // deadzone
   return 0;
@@ -175,47 +171,14 @@ void handleSensor() {
   }
 }
 
-bool isAlarmTriggered() {
-    return alarmTriggered;
-}
-
-float getLastDistance() {
-    return distance;
-}
-
 void resetAlarm() {
     alarmTriggered = false;
     buzzerState = false;
     digitalWrite(buzz, LOW);
-    if (alarmArmed) {
-        setLedState(STATE_ARMED);    // Wracamy do czerwonego (czuwanie)
-    } else {
-        setLedState(STATE_DISARMED); // Wracamy do zielonego (rozbrojony)
-    }
+    setLedState(alarmArmed ? STATE_ARMED : STATE_DISARMED);
 }
 
-void sensorStatsTick(float lastDistance) {
-  sensorCallsThisMinute++;
-  distanceSumThisMinute += lastDistance;
-}
-
-void sensorStatsGet(int &calls, float &avgDistance) {
-  calls = sensorCallsThisMinute;
-  if (sensorCallsThisMinute > 0) {
-    avgDistance = distanceSumThisMinute / sensorCallsThisMinute;
-  } else {
-    avgDistance = 0.0f;
-  }
-
-  sensorCallsThisMinute = 0;
-  distanceSumThisMinute = 0.0f;
-}
-
-
-bool isConfigResetRequested() {
-  return configResetRequest;
-}
-
-void clearConfigResetRequest() {
-  configResetRequest = false;
-}
+bool isConfigResetRequested()  { return configResetRequest; }
+void clearConfigResetRequest() { configResetRequest = false; }
+bool isAlarmTriggered()        { return alarmTriggered; }
+float getLastDistance()        { return distance; }
