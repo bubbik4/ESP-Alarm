@@ -24,12 +24,6 @@ const unsigned long MQTT_RETRY_INTERVAL = 5000; // Próba co 5 sekund
 static int connectionRetries = 0;
 const int MAX_RETRIES = 3;
 
-// Zmienne Offline (opcjonalne, jeśli chcesz zachować logikę 3 min ciszy)
-bool inOfflineMode = false;           
-unsigned long offlineStartTimer = 0;  
-const unsigned long OFFLINE_DURATION = 60000; // Zmniejszyłem na 1 min dla testów!
-
-// --- TA FUNKCJA ROBI ROBOTĘ ---
 void forceNetworkRestart() {
     INFO("Nuclear Option: Turning WiFi OFF and ON again...");
     WiFi.disconnect(false);   
@@ -37,12 +31,9 @@ void forceNetworkRestart() {
     WiFi.mode(WIFI_OFF); // Wyłączamy radio fizycznie
     delay(500);
     WiFi.mode(WIFI_STA); // Włączamy radio
-    // Tu musisz podać swoje dane, albo te z wifiHandler.h
-    // Jeśli używasz WiFiManager, to samo WiFi.begin() wystarczy (bez argumentów) często
-    // Ale dla pewności lepiej wpisać:
     WiFi.begin(); 
     
-    connectionRetries = 0; // Resetujemy licznik
+    connectionRetries = 0;
 }
 
 void restoreSystemLeds() {
@@ -103,7 +94,6 @@ void handleMQTT() {
     if (client.connected()) {
         if (!mqttWasConnected) {
             mqttWasConnected = true;
-            inOfflineMode = false; 
             connectionRetries = 0;
             INFO("MQTT connection restored!");
             restoreSystemLeds();
@@ -140,12 +130,11 @@ void handleMQTT() {
             
             // 3x Żółty (błąd)
             reportError(3, getColor(255, 200, 0));
-            
-            // --- NUCLEAR OPTION ---
+        
             forceNetworkRestart(); 
             // ----------------------
             
-            // Fail Safe ARM (jeśli chcesz)
+            // Fail Safe ARM
             alarmArmed = 1;
             restoreSystemLeds();
         }

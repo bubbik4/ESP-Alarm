@@ -166,7 +166,6 @@ void handleSensor() {
         // This means the sensor read is correct
         failCount = 0;
         handleAlarm(distance);
-        sensorStatsTick(distance);
     }
   }
 }
