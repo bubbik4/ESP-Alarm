@@ -7,7 +7,8 @@ enum SystemState {
     STATE_DISARMED,
     STATE_ARMED,
     STATE_ALARM,
-    STATE_WIFI_LOST
+    STATE_WIFI_LOST,
+    STATE_ERROR
 };
 
 void initLeds();

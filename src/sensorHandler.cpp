@@ -159,7 +159,7 @@ void handleSensor() {
       if(failCount >= 10) {
         ERROR("No answer from sensor in 10 tries. Rebooting"); 
         reportError(5, getColor(255,0,0));
-        delay(1000);
+        delay(5000);
         ESP.restart();
       }
     } else {

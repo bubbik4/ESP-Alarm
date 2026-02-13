@@ -7,12 +7,21 @@
 Adafruit_NeoPixel strip(NUM_LEDS, PIN_LEDS, NEO_GRB + NEO_KHZ800);
 
 SystemState currentState = STATE_BOOT;
+SystemState previousState = STATE_DISARMED;
 unsigned long lastUpdate = 0;
 unsigned long stateChangeTime = 0; // Tu zapisujemy, kiedy zmienił się stan
+
 
 int brightness = 0;
 int fadeAmount = 5;
 bool blinkState = false;
+
+// error handling 
+int errTargetBlinks = 0;
+int errCurrentBlink = 0;
+uint32_t errColor = 0;
+int errSequenceStep = 0;
+unsigned long errTimer = 0;
 
 // Czas wygaszania w stanie DISARMED (ms)
 const unsigned long LED_TIMEOUT = 60000; // 60 sekund
@@ -28,32 +37,17 @@ uint32_t getColor(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void reportError(int count, uint32_t color) {
-    int oldBrightness = strip.getBrightness();
+    if(currentState != STATE_ERROR) previousState = currentState;
+
+    currentState = STATE_ERROR;
+
+    errTargetBlinks = count;
+    errColor = color;
+    errCurrentBlink = 0;
+    errTimer = millis();
+
     strip.setBrightness(150);
 
-    for(int i = 0; i < 3; i++) {
-        strip.fill(strip.Color(255, 255, 255)); // BIAŁY
-        strip.show();
-        delay(100);
-        strip.clear();
-        strip.show();
-        delay(100);
-    }
-
-    delay(500);
-
-    //err code
-    for(int i = 0; i < count; i++) {
-        strip.fill(color);
-        strip.show();
-        delay(400); // Dłuższe świecenie
-        strip.clear();
-        strip.show();
-        delay(300); // Przerwa
-    }
-
-
-    strip.setBrightness(oldBrightness);
 }
 
 void colorWipe(uint32_t color) {
@@ -125,6 +119,54 @@ void handleLeds() {
                 lastUpdate = now;
                 blinkState = !blinkState;
                 colorWipe(blinkState ? strip.Color(255, 200, 0) : 0);
+             }
+             break;
+        
+        case STATE_ERROR:
+             if(errSequenceStep < 6) {
+                unsigned long interval = 100;
+                if(now - errTimer >= interval) {
+                    errTimer = now;
+
+                    if(errSequenceStep % 2 == 0) strip.fill(255,255,255);
+                    else strip.clear();
+
+                    strip.show();
+                    errSequenceStep++;
+                }
+             }
+             else if (errSequenceStep == 6) {
+                if(now - errTimer >= 500) {
+                    errTimer = now;
+                    strip.clear();
+                    strip.show();
+                    errSequenceStep++;
+                }
+             }
+             else {
+                if (errCurrentBlink >= errTargetBlinks) {
+                    strip.setBrightness(100);
+                    setLedState(previousState);
+                    return;
+                }
+
+                if(errSequenceStep % 2 !=0) {
+                    if(now - errTimer >= 300)  {
+                        strip.fill(errColor);
+                        strip.show();
+                        errTimer = now;
+                        errSequenceStep++;
+                    }
+                }
+                else {
+                    if(now - errTimer >= 400) {
+                        strip.clear();
+                        strip.show();
+                        errTimer = now;
+                        errSequenceStep++;
+                        errCurrentBlink++;
+                    }
+                }
              }
              break;
     }

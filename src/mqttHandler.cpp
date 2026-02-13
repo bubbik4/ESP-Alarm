@@ -22,7 +22,7 @@ static bool mqttWasConnected = false;
 unsigned long lastMqttAttempt = 0;
 const unsigned long MQTT_RETRY_INTERVAL = 5000; // Próba co 5 sekund
 static int connectionRetries = 0;
-const int MAX_RETRIES = 3;
+const int MAX_RETRIES = 20;
 
 void forceNetworkRestart() {
     INFO("Nuclear Option: Turning WiFi OFF and ON again...");
