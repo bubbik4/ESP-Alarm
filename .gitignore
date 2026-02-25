@@ -1,3 +1,6 @@
 .pio
+platformio.ini
 .vscode
 test
+lib
+secrets.h
